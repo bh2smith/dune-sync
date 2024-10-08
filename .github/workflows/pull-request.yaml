@@ -1,0 +1,26 @@
+name: pull request
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+jobs:
+  lint-format-types-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install Requirements
+        run: pip install -r requirements/dev.txt
+      - name: Pylint
+        run: pylint src/
+      - name: Black
+        run: black --check ./
+      # - name: Type Check (mypy)
+      #   run: mypy src --strict

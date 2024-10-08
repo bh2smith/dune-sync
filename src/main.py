@@ -1,8 +1,8 @@
+import os
 import requests
 import pandas as pd
 from sqlalchemy import create_engine
 from dotenv import load_dotenv
-import os
 
 from src.types import DUNE_TO_PG
 
@@ -22,11 +22,11 @@ def reformat_varbinary_columns(df, varbinary_columns):
 
 
 def fetch_dune_data():
-    response = requests.get(API_URL, headers=HEADERS)
+    response = requests.get(API_URL, headers=HEADERS, timeout=10)
     if response.status_code == 200:
         data = response.json()
         result = data["result"]
-        metadata =  result["metadata"]
+        metadata = result["metadata"]
         dtypes, varbinary_columns = {}, []
         for name, d_type in zip(metadata["column_names"], metadata["column_types"]):
             dtypes[name] = DUNE_TO_PG[d_type]
@@ -36,9 +36,10 @@ def fetch_dune_data():
         # escape bytes
         df = reformat_varbinary_columns(df, varbinary_columns)
         return df, dtypes
-    else:
-        print(f"Error fetching data: {response.status_code}")
-        return None
+
+    print(f"Error fetching data: {response.status_code}")
+    return None
+
 
 def save_to_postgres(df, dtypes):
     db_connection = DB_URL
