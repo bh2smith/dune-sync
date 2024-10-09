@@ -25,7 +25,6 @@ lint:
 check:
 	make fmt
 	make lint
-	#make types
 
 run:
 	python -m src.main
