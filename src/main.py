@@ -8,8 +8,14 @@ from dotenv import load_dotenv
 from src.types import DUNE_TO_PG
 
 load_dotenv()
+DUNE_API_KEY = os.getenv("DUNE_API_KEY")
 DB_URL = os.getenv("DB_URL")
-TABLE_NAME = "dune_data"
+
+# TODO(bh2smith): parse config file for most of the following stuff
+QUERY_ID = int(os.getenv("QUERY_ID"))
+POLL_FREQUENCY=int(os.getenv("POLL_FREQUENCY"))
+QUERY_ENGINE = os.getenv("QUERY_ENGINE")
+TABLE_NAME = f"dune_data_{QUERY_ID}"
 
 
 def reformat_varbinary_columns(df, varbinary_columns):
@@ -20,8 +26,8 @@ def reformat_varbinary_columns(df, varbinary_columns):
 
 def fetch_dune_data():
     result = (
-        DuneClient.from_env()
-        .run_query(query=QueryBase(4132129), ping_frequency=10)
+        DuneClient(DUNE_API_KEY, performance=QUERY_ENGINE)
+        .run_query(query=QueryBase(QUERY_ID), ping_frequency=POLL_FREQUENCY)
         .result
     )
 
