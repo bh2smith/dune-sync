@@ -13,7 +13,7 @@ DB_URL = os.environ.get("DB_URL")
 
 # TODO(bh2smith): parse config file for most of the following stuff
 QUERY_ID = int(os.environ.get("QUERY_ID"))
-POLL_FREQUENCY=int(os.environ.get("POLL_FREQUENCY"))
+POLL_FREQUENCY = int(os.environ.get("POLL_FREQUENCY"))
 QUERY_ENGINE = os.environ.get("QUERY_ENGINE")
 TABLE_NAME = f"dune_data_{QUERY_ID}"
 
