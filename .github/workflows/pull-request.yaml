@@ -22,5 +22,5 @@ jobs:
         run: pylint src/
       - name: Black
         run: black --check ./
-      # - name: Type Check (mypy)
-      #   run: mypy src --strict
+      - name: Type Check (mypy)
+        run: mypy src --strict

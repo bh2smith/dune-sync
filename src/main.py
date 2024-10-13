@@ -22,7 +22,10 @@ TABLE_NAME = f"dune_data_{QUERY_ID}"
 
 DataTypes = dict[str, Any]
 
-def reformat_varbinary_columns(df: DataFrame, varbinary_columns: list[str]) -> DataFrame:
+
+def reformat_varbinary_columns(
+    df: DataFrame, varbinary_columns: list[str]
+) -> DataFrame:
     for col in varbinary_columns:
         df[col] = df[col].apply(lambda x: bytes.fromhex(x[2:]) if pd.notnull(x) else x)
     return df
