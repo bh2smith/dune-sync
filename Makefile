@@ -22,9 +22,13 @@ fmt:
 lint:
 	pylint ${PROJECT_ROOT}/
 
+types:
+	mypy ${PROJECT_ROOT}/ --strict
+
 check:
 	make fmt
 	make lint
+	make types
 
 run:
 	python -m src.main
