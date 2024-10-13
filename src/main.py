@@ -1,18 +1,21 @@
 import os
-import requests
 import pandas as pd
+from dune_client.client import DuneClient
+from dune_client.query import QueryBase
 from sqlalchemy import create_engine
 from dotenv import load_dotenv
 
 from src.types import DUNE_TO_PG
 
 load_dotenv()
-DUNE_API_KEY = os.getenv("DUNE_API_KEY")
-DB_URL = os.getenv("DB_URL")
-TABLE_NAME = "dune_data"
+DUNE_API_KEY = os.environ.get("DUNE_API_KEY")
+DB_URL = os.environ.get("DB_URL")
 
-API_URL = "https://api.dune.com/api/v1/query/4132129/results"
-HEADERS = {"x-dune-api-key": DUNE_API_KEY}
+# TODO(bh2smith): parse config file for most of the following stuff
+QUERY_ID = int(os.environ.get("QUERY_ID"))
+POLL_FREQUENCY = int(os.environ.get("POLL_FREQUENCY"))
+QUERY_ENGINE = os.environ.get("QUERY_ENGINE")
+TABLE_NAME = f"dune_data_{QUERY_ID}"
 
 
 def reformat_varbinary_columns(df, varbinary_columns):
@@ -22,23 +25,22 @@ def reformat_varbinary_columns(df, varbinary_columns):
 
 
 def fetch_dune_data():
-    response = requests.get(API_URL, headers=HEADERS, timeout=10)
-    if response.status_code == 200:
-        data = response.json()
-        result = data["result"]
-        metadata = result["metadata"]
-        dtypes, varbinary_columns = {}, []
-        for name, d_type in zip(metadata["column_names"], metadata["column_types"]):
-            dtypes[name] = DUNE_TO_PG[d_type]
-            if d_type == "varbinary":
-                varbinary_columns.append(name)
-        df = pd.DataFrame(result["rows"])
-        # escape bytes
-        df = reformat_varbinary_columns(df, varbinary_columns)
-        return df, dtypes
+    result = (
+        DuneClient(DUNE_API_KEY, performance=QUERY_ENGINE)
+        .run_query(query=QueryBase(QUERY_ID), ping_frequency=POLL_FREQUENCY)
+        .result
+    )
 
-    print(f"Error fetching data: {response.status_code}")
-    return None
+    metadata = result.metadata
+    dtypes, varbinary_columns = {}, []
+    for name, d_type in zip(metadata.column_names, metadata.column_types):
+        dtypes[name] = DUNE_TO_PG[d_type]
+        if d_type == "varbinary":
+            varbinary_columns.append(name)
+    df = pd.DataFrame(result.rows)
+    # escape bytes
+    df = reformat_varbinary_columns(df, varbinary_columns)
+    return df, dtypes
 
 
 def save_to_postgres(df, dtypes):

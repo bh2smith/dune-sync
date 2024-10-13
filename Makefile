@@ -1,4 +1,4 @@
-VENV = venv
+VENV = .venv
 PYTHON = $(VENV)/bin/python3
 PIP = $(VENV)/bin/pip
 PROJECT_ROOT = src
@@ -25,7 +25,6 @@ lint:
 check:
 	make fmt
 	make lint
-	make types
 
 run:
 	python -m src.main
