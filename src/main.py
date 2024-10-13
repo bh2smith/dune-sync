@@ -8,13 +8,13 @@ from dotenv import load_dotenv
 from src.types import DUNE_TO_PG
 
 load_dotenv()
-DUNE_API_KEY = os.getenv("DUNE_API_KEY")
-DB_URL = os.getenv("DB_URL")
+DUNE_API_KEY = os.environ.get("DUNE_API_KEY")
+DB_URL = os.environ.get("DB_URL")
 
 # TODO(bh2smith): parse config file for most of the following stuff
-QUERY_ID = int(os.getenv("QUERY_ID"))
-POLL_FREQUENCY=int(os.getenv("POLL_FREQUENCY"))
-QUERY_ENGINE = os.getenv("QUERY_ENGINE")
+QUERY_ID = int(os.environ.get("QUERY_ID"))
+POLL_FREQUENCY=int(os.environ.get("POLL_FREQUENCY"))
+QUERY_ENGINE = os.environ.get("QUERY_ENGINE")
 TABLE_NAME = f"dune_data_{QUERY_ID}"
 
 
