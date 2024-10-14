@@ -12,6 +12,6 @@ DUNE_TO_PG: dict[str, Type[Any]] = {
     "double": DOUBLE_PRECISION,
     "timestamp with time zone": TIMESTAMP,
     # TODO: parse these innards more dynamically.
-    "decimal(38, 0)": NUMERIC(38, 0),
-    "array(varbinary)": ARRAY(BYTEA),
+    # "decimal(38, 0)": NUMERIC(38, 0),
+    # "array(varbinary)": ARRAY(BYTEA),
 }
