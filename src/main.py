@@ -7,12 +7,9 @@ from pandas import DataFrame
 from dune_client.client import DuneClient
 from dune_client.query import QueryBase
 from sqlalchemy import create_engine
-from dotenv import load_dotenv
 
+from src.config import load_env
 from src.types import DUNE_TO_PG
-
-DUNE_API_KEY = os.environ.get("DUNE_API_KEY")
-DB_URL = os.environ.get("DB_URL")
 
 # TODO(bh2smith): parse config file for most of the following stuff
 QUERY_ID = os.environ.get("QUERY_ID")
@@ -56,18 +53,16 @@ def save_to_postgres(
 
 
 def main() -> None:
-    load_dotenv()
-    if DUNE_API_KEY is None:
-        raise EnvironmentError("DUNE_API_KEY environment variable must be set!")
+    env = load_env()
     if QUERY_ID is None:
         raise EnvironmentError("QUERY_ID must be set")
 
     df, types = fetch_dune_data(
-        dune=DuneClient(DUNE_API_KEY, performance=QUERY_ENGINE),
+        dune=DuneClient(env.dune_api_key, performance=QUERY_ENGINE),
         query=QueryBase(int(QUERY_ID)),
     )
     if df is not None:
-        engine = create_engine(DB_URL)
+        engine = create_engine(env.db_url)
         save_to_postgres(engine, df, types)
 
 
