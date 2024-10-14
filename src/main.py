@@ -3,11 +3,11 @@ from typing import Any
 
 import pandas as pd
 import sqlalchemy
-from pandas import DataFrame
+from dotenv import load_dotenv
 from dune_client.client import DuneClient
 from dune_client.query import QueryBase
+from pandas import DataFrame
 from sqlalchemy import create_engine
-from dotenv import load_dotenv
 
 from src.types import DUNE_TO_PG
 
@@ -49,7 +49,7 @@ def fetch_dune_data(dune: DuneClient, query: QueryBase) -> tuple[DataFrame, Data
 
 
 def save_to_postgres(
-    engine: sqlalchemy.engine.Engine, df: DataFrame, dtypes: DataTypes
+        engine: sqlalchemy.engine.Engine, df: DataFrame, dtypes: DataTypes
 ) -> None:
     df.to_sql(TABLE_NAME, engine, if_exists="replace", index=False, dtype=dtypes)
     print("Data saved to PostgreSQL successfully!")
