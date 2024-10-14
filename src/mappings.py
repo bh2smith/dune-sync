@@ -1,7 +1,7 @@
 from typing import Type, Any
 
 from sqlalchemy import BIGINT, BOOLEAN, VARCHAR, DATE, TIMESTAMP
-from sqlalchemy.dialects.postgresql import BYTEA, DOUBLE_PRECISION
+from sqlalchemy.dialects.postgresql import BYTEA, DOUBLE_PRECISION, NUMERIC, ARRAY
 
 DUNE_TO_PG: dict[str, Type[Any]] = {
     "bigint": BIGINT,
