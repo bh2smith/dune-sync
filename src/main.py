@@ -49,7 +49,7 @@ def fetch_dune_data(dune: DuneClient, query: QueryBase) -> tuple[DataFrame, Data
 
 
 def save_to_postgres(
-        engine: sqlalchemy.engine.Engine, df: DataFrame, dtypes: DataTypes
+    engine: sqlalchemy.engine.Engine, df: DataFrame, dtypes: DataTypes
 ) -> None:
     df.to_sql(TABLE_NAME, engine, if_exists="replace", index=False, dtype=dtypes)
     print("Data saved to PostgreSQL successfully!")
