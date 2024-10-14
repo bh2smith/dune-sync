@@ -9,7 +9,7 @@ from dune_client.query import QueryBase
 from sqlalchemy import create_engine
 from dotenv import load_dotenv
 
-from src.types import DUNE_TO_PG
+from src.mappings import DUNE_TO_PG
 
 DUNE_API_KEY = os.environ.get("DUNE_API_KEY")
 DB_URL = os.environ.get("DB_URL")
