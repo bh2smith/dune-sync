@@ -2,9 +2,9 @@ from typing import Any
 
 import pandas as pd
 import sqlalchemy
-from pandas import DataFrame
 from dune_client.client import DuneClient
 from dune_client.query import QueryBase
+from pandas import DataFrame
 from sqlalchemy import create_engine
 
 from src.config import Env, RuntimeConfig
