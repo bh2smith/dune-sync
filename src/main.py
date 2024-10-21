@@ -1,24 +1,14 @@
-import os
 from typing import Any
 
 import pandas as pd
 import sqlalchemy
-from dotenv import load_dotenv
 from dune_client.client import DuneClient
 from dune_client.query import QueryBase
 from pandas import DataFrame
 from sqlalchemy import create_engine
 
-from src.types import DUNE_TO_PG
-
-DUNE_API_KEY = os.environ.get("DUNE_API_KEY")
-DB_URL = os.environ.get("DB_URL")
-
-# TODO(bh2smith): parse config file for most of the following stuff
-QUERY_ID = os.environ.get("QUERY_ID")
-POLL_FREQUENCY = int(os.environ.get("POLL_FREQUENCY", 1))
-QUERY_ENGINE = os.environ.get("QUERY_ENGINE", "medium")
-TABLE_NAME = f"dune_data_{QUERY_ID}"
+from src.config import Env, RuntimeConfig
+from src.mappings import DUNE_TO_PG
 
 DataTypes = dict[str, Any]
 
@@ -31,8 +21,10 @@ def reformat_varbinary_columns(
     return df
 
 
-def fetch_dune_data(dune: DuneClient, query: QueryBase) -> tuple[DataFrame, DataTypes]:
-    result = dune.run_query(query, ping_frequency=POLL_FREQUENCY).result
+def fetch_dune_data(
+    dune: DuneClient, query: QueryBase, ping_frequency: int
+) -> tuple[DataFrame, DataTypes]:
+    result = dune.run_query(query, ping_frequency).result
     if result is None:
         raise ValueError("Query execution failed!")
 
@@ -49,26 +41,24 @@ def fetch_dune_data(dune: DuneClient, query: QueryBase) -> tuple[DataFrame, Data
 
 
 def save_to_postgres(
-    engine: sqlalchemy.engine.Engine, df: DataFrame, dtypes: DataTypes
+    engine: sqlalchemy.engine.Engine, table_name: str, df: DataFrame, dtypes: DataTypes
 ) -> None:
-    df.to_sql(TABLE_NAME, engine, if_exists="replace", index=False, dtype=dtypes)
+    df.to_sql(table_name, engine, if_exists="replace", index=False, dtype=dtypes)
     print("Data saved to PostgreSQL successfully!")
 
 
 def main() -> None:
-    load_dotenv()
-    if DUNE_API_KEY is None:
-        raise EnvironmentError("DUNE_API_KEY environment variable must be set!")
-    if QUERY_ID is None:
-        raise EnvironmentError("QUERY_ID must be set")
+    env = Env.load()
+    config = RuntimeConfig.load_from_toml("config.toml")
 
     df, types = fetch_dune_data(
-        dune=DuneClient(DUNE_API_KEY, performance=QUERY_ENGINE),
-        query=QueryBase(int(QUERY_ID)),
+        dune=DuneClient(env.dune_api_key, performance=config.query_engine),
+        query=QueryBase(config.query_id),
+        ping_frequency=config.poll_frequency,
     )
     if df is not None:
-        engine = create_engine(DB_URL)
-        save_to_postgres(engine, df, types)
+        engine = create_engine(env.db_url)
+        save_to_postgres(engine, config.table_name, df, types)
 
 
 if __name__ == "__main__":
