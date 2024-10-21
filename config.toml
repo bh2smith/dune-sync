@@ -1,8 +1,20 @@
-# The ID of the query to execute
+[[jobs]]
+# Job 1 configuration
 query_id = 4159712
-# The name of the table where the query results will be stored
-table_name = "results_table"
-# The frequency (in seconds) at which the query should be polled
+table_name = "results_table_1"
 poll_frequency = 2
-# The query engine to use (valid values are "medium" or "large")
+query_engine = "medium"
+
+[[jobs]]
+# Job 2 configuration
+query_id = 4159713
+table_name = "results_table_2"
+poll_frequency = 5
+query_engine = "large"
+
+[[jobs]]
+# Job 3 configuration
+query_id = 4159714
+table_name = "results_table_3"
+poll_frequency = 10
 query_engine = "medium"
