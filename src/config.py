@@ -117,6 +117,12 @@ class RuntimeConfig:
                     query_engine=query_engine,
                 )
             )
+        config = cls(jobs)
+        config.validate()
+        return config
 
-        # Return the RuntimeConfig object containing the list of jobs
-        return cls(jobs=jobs)
+    def validate(self) -> None:
+        # TODO: change to log.warn after https://github.com/bh2smith/dune-sync/pull/14
+        assert len(self.jobs) == len(
+            set(j.query_id for j in self.jobs)
+        ), "Same query in multiple jobs."
