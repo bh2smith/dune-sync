@@ -1,5 +1,5 @@
 from typing import Any
-from logger import log
+
 import pandas as pd
 import sqlalchemy
 from dune_client.client import DuneClient
@@ -9,6 +9,7 @@ from sqlalchemy import create_engine
 
 from src.config import Env, RuntimeConfig
 from src.mappings import DUNE_TO_PG
+from src.logger import log
 
 DataTypes = dict[str, Any]
 
