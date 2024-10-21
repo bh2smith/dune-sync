@@ -1,5 +1,5 @@
 from typing import Any
-
+from logger import log
 import pandas as pd
 import sqlalchemy
 from dune_client.client import DuneClient
@@ -44,7 +44,7 @@ def save_to_postgres(
     engine: sqlalchemy.engine.Engine, table_name: str, df: DataFrame, dtypes: DataTypes
 ) -> None:
     df.to_sql(table_name, engine, if_exists="replace", index=False, dtype=dtypes)
-    print("Data saved to PostgreSQL successfully!")
+    log.info("Data saved to PostgreSQL successfully!")
 
 
 def main() -> None:
