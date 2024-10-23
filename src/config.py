@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, Union
 
 import tomli
 from dotenv import load_dotenv
@@ -69,7 +69,9 @@ class RuntimeConfig:
     query_engine: Literal["medium", "large"] = "medium"  # Default value is "medium"
 
     @classmethod
-    def load_from_toml(cls, file_path: str = "config.toml") -> RuntimeConfig:
+    def load_from_toml(
+        cls, file_path: Union[str, os.PathLike] = "config.toml"
+    ) -> RuntimeConfig:
         """
         Reads the configuration from a TOML file and returns a RuntimeConfig object.
 
