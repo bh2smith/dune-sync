@@ -1,6 +1,7 @@
 """
 Utilities to create micro-ETL-like pipelines for easier and more maintainable sets of tasks
 """
+# pragma pylint: disable=too-few-public-methods
 
 import graphlib
 from typing import Callable, Optional, Iterable

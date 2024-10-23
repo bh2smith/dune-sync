@@ -58,7 +58,7 @@ def fetch_dune_data(
     return df, dtypes
 
 
-def extract_dune_data(config):
+def extract_dune_data(config: RuntimeConfig):
     df, types = fetch_dune_data(
         dune=DuneClient(env.dune_api_key, performance=config.query_engine),
         query=QueryBase(config.query_id),
@@ -68,7 +68,7 @@ def extract_dune_data(config):
     bag.api_types = types
 
 
-def save_data(config):
+def save_data(config: RuntimeConfig):
     if bag.df is None:
         return
 
