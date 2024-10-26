@@ -3,6 +3,7 @@ from typing import Any
 import pandas as pd
 import sqlalchemy
 from dune_client.client import DuneClient
+from dune_client.models import ExecutionResult
 from dune_client.query import QueryBase
 from pandas import DataFrame
 from sqlalchemy import create_engine
@@ -22,13 +23,7 @@ def reformat_varbinary_columns(
     return df
 
 
-def fetch_dune_data(
-    dune: DuneClient, query: QueryBase, ping_frequency: int
-) -> tuple[DataFrame, DataTypes]:
-    result = dune.run_query(query, ping_frequency).result
-    if result is None:
-        raise ValueError("Query execution failed!")
-
+def dune_result_to_df(result: ExecutionResult) -> tuple[DataFrame, dict[str, type]]:
     metadata = result.metadata
     dtypes, varbinary_columns = {}, []
     for name, d_type in zip(metadata.column_names, metadata.column_types):
@@ -41,6 +36,15 @@ def fetch_dune_data(
     # escape bytes
     df = reformat_varbinary_columns(df, varbinary_columns)
     return df, dtypes
+
+
+def fetch_dune_data(
+    dune: DuneClient, query: QueryBase, ping_frequency: int
+) -> tuple[DataFrame, DataTypes]:
+    result = dune.run_query(query, ping_frequency).result
+    if result is None:
+        raise ValueError("Query execution failed!")
+    return dune_result_to_df(result)
 
 
 def save_to_postgres(

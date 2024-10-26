@@ -30,5 +30,9 @@ check:
 	make lint
 	make types
 
+
+test:
+	python -m pytest tests/
+
 run:
 	python -m src.main
