@@ -9,7 +9,20 @@ from __future__ import annotations
 import graphlib
 from collections.abc import Hashable
 from graphlib import TopologicalSorter
-from typing import Callable, Optional, Iterable, Any
+from typing import Callable, Optional, Iterable, Any, TypeVar, Protocol, Generic
+
+
+# Define a Protocol for tasks that have a run method
+class Runnable(Protocol):
+    """Runnable protocol"""
+
+    def run(self) -> Any: ...
+
+
+# Define a type variable constrained to Runnable
+T = TypeVar("T", bound=Runnable)
+
+# T = TypeVar("T")
 
 
 class DataBag:
@@ -31,22 +44,24 @@ class DataBag:
             DataBag.__databag = self
 
     def __setattr__(self, key: Hashable, value: Any) -> None:
+        assert self.__databag is not None, "DataBag instance has not been initialized"
         self.__databag._bag[key] = value
 
     def __getattr__(self, item: Any) -> Any | None:
+        assert self.__databag is not None, "DataBag instance has not been initialized"
         return self.__databag._bag.get(item, None)
 
 
-class Pipeline:
+class Pipeline(Generic[T]):
     """
     Orchestrates a set of :class: Task instances and allows you to run them as an ETL pipeline.
 
     """
 
     def __init__(self) -> None:
-        self._graph: TopologicalSorter = graphlib.TopologicalSorter()
+        self._graph: TopologicalSorter[T] = graphlib.TopologicalSorter()
 
-    def add(self, node, *predecessors) -> None:
+    def add(self, node: T, *predecessors: T) -> None:
         self._graph.add(node, *predecessors)
 
     def run(self) -> None:
@@ -64,7 +79,7 @@ class Task:
 
     def __init__(
         self,
-        _callable: Callable,
+        _callable: Callable[..., Any],
         name: Optional[str] = None,
         task_args: Optional[Iterable[Any]] = None,
         task_kwargs: Optional[dict[str, Any]] = None,

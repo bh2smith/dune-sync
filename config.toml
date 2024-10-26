@@ -1,5 +1,5 @@
 # The ID of the query to execute
-query_id = 3968374
+query_id = 4159712
 # The name of the table where the query results will be stored
 table_name = "results_table"
 # The frequency (in seconds) at which the query should be polled

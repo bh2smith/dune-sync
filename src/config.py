@@ -70,7 +70,7 @@ class RuntimeConfig:
 
     @classmethod
     def load_from_toml(
-        cls, file_path: str | os.PathLike = "config.toml"
+        cls, file_path: str | os.PathLike[str] = "config.toml"
     ) -> RuntimeConfig:
         """
         Reads the configuration from a TOML file and returns a RuntimeConfig object.

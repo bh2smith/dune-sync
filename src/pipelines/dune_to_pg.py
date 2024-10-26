@@ -27,7 +27,7 @@ def reformat_varbinary_columns() -> DataFrame:
     if bag.df is None:
         return DataFrame()
 
-    df = bag.df
+    df: DataFrame = bag.df
 
     # If we have data but no columns to fix, just return our actual current data
     if bag.varbin_columns is None:
@@ -82,17 +82,17 @@ def save_data(config: RuntimeConfig) -> None:
         return
 
     engine = create_engine(env.db_url)
-    save_to_postgres(engine, config.table_name, bag.df, bag.types)
+    save_to_postgres(engine, config.table_name, bag.df, bag.types or dict())
 
 
-def create_pipeline(config: RuntimeConfig) -> Pipeline:
+def create_pipeline(config: RuntimeConfig) -> Pipeline[Task]:
     extract_data_task = Task(extract_dune_data, task_args=[config])
 
     transform_data_task = Task(reformat_varbinary_columns)
 
     save_data_task = Task(save_data, task_args=[config])
 
-    pipeline = Pipeline()
+    pipeline: Pipeline[Task] = Pipeline()
     pipeline.add(save_data_task, transform_data_task)
     pipeline.add(transform_data_task, extract_data_task)
 
