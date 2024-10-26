@@ -7,6 +7,8 @@ from typing import Literal
 import tomli
 from dotenv import load_dotenv
 
+from src.logger import log
+
 
 @dataclass
 class Env:
@@ -43,9 +45,9 @@ class Env:
 
 
 @dataclass
-class RuntimeConfig:
+class DuneToLocalJob:
     """
-    A class to represent the runtime configuration settings.
+    A class to represent a single job configuration.
 
     Attributes
     ----------
@@ -53,20 +55,30 @@ class RuntimeConfig:
         The ID of the query to execute.
     table_name : str
         The name of the table where the query results will be stored.
-    query_engine : Literal["medium", "large"]
-        The query engine to use, either "medium" or "large" (default is "medium").
     poll_frequency : int
         The frequency (in seconds) at which the query should be polled.
-    Methods
-    -------
-    load_from_toml(file_path: str) -> RuntimeConfig:
-        Reads the configuration from a TOML file and returns a RuntimeConfig object.
+    query_engine : Literal["medium", "large"]
+        The query engine to use, either "medium" or "large" (default is "medium").
     """
 
     query_id: int
     table_name: str
     poll_frequency: int
     query_engine: Literal["medium", "large"] = "medium"  # Default value is "medium"
+
+
+@dataclass
+class RuntimeConfig:
+    """
+    A class to represent the runtime configuration settings.
+
+    Attributes
+    ----------
+    jobs : List[JobConfig]
+        A list of JobConfig instances, each representing a separate job configuration.
+    """
+
+    jobs: list[DuneToLocalJob]
 
     @classmethod
     def load_from_toml(cls, file_path: str = "config.toml") -> RuntimeConfig:
@@ -87,18 +99,30 @@ class RuntimeConfig:
         with open(file_path, "rb") as f:
             toml_dict = tomli.load(f)
 
-        # Required
-        query_id = toml_dict["query_id"]
-        table_name = toml_dict.get("table_name", f"dune_data_{query_id}")
+        # Parse each job configuration
+        jobs = []
+        for job in toml_dict.get("jobs", []):
+            query_id = job["query_id"]
+            table_name = job.get("table_name", f"dune_data_{query_id}")
+            query_engine = job.get("query_engine", "medium")
 
-        # Ensure that QUERY_ENGINE is either 'medium' or 'large'
-        query_engine = toml_dict.get("query_engine", "medium")
-        if query_engine not in ("medium", "large"):
-            raise ValueError("query_engine must be either 'medium' or 'large'.")
-        # Create and return the RuntimeConfig object
-        return cls(
-            query_id,
-            table_name,
-            poll_frequency=toml_dict.get("poll_frequency", 1),
-            query_engine=query_engine,
-        )
+            if query_engine not in ("medium", "large"):
+                raise ValueError("query_engine must be either 'medium' or 'large'.")
+
+            poll_frequency = job.get("poll_frequency", 1)
+
+            jobs.append(
+                DuneToLocalJob(
+                    query_id=query_id,
+                    table_name=table_name,
+                    poll_frequency=poll_frequency,
+                    query_engine=query_engine,
+                )
+            )
+        config = cls(jobs)
+        config.validate()
+        return config
+
+    def validate(self) -> None:
+        if len(self.jobs) == len(set(j.query_id for j in self.jobs)):
+            log.warning("Detected multiple jobs running the same query")

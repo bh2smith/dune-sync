@@ -35,6 +35,8 @@ def fetch_dune_data(
         dtypes[name] = DUNE_TO_PG[d_type]
         if d_type == "varbinary":
             varbinary_columns.append(name)
+        if d_type == "array(varbinary)":
+            print(result.rows)
     df = pd.DataFrame(result.rows)
     # escape bytes
     df = reformat_varbinary_columns(df, varbinary_columns)
@@ -45,21 +47,22 @@ def save_to_postgres(
     engine: sqlalchemy.engine.Engine, table_name: str, df: DataFrame, dtypes: DataTypes
 ) -> None:
     df.to_sql(table_name, engine, if_exists="replace", index=False, dtype=dtypes)
-    log.info("Data saved to PostgreSQL successfully!")
+    log.info("Data saved to %s successfully!", table_name)
 
 
 def main() -> None:
     env = Env.load()
     config = RuntimeConfig.load_from_toml("config.toml")
-
-    df, types = fetch_dune_data(
-        dune=DuneClient(env.dune_api_key, performance=config.query_engine),
-        query=QueryBase(config.query_id),
-        ping_frequency=config.poll_frequency,
-    )
-    if df is not None:
-        engine = create_engine(env.db_url)
-        save_to_postgres(engine, config.table_name, df, types)
+    # TODO: Async job execution https://github.com/bh2smith/dune-sync/issues/20
+    for job in config.jobs:
+        df, types = fetch_dune_data(
+            dune=DuneClient(env.dune_api_key, performance=job.query_engine),
+            query=QueryBase(job.query_id),
+            ping_frequency=job.poll_frequency,
+        )
+        if df is not None:
+            engine = create_engine(env.db_url)
+            save_to_postgres(engine, job.table_name, df, types)
 
 
 if __name__ == "__main__":
