@@ -23,7 +23,7 @@ def reformat_varbinary_columns() -> DataFrame:
     Escapes byte-columns returned by the API
     :return: pandas.DataFrame
     """
-    df = bag.df
+    df = bag.df or DataFrame()
     for col in bag.varbin_columns:
         df[col] = df[col].apply(lambda x: bytes.fromhex(x[2:]) if pd.notnull(x) else x)
 
@@ -34,7 +34,7 @@ def reformat_varbinary_columns() -> DataFrame:
 def save_to_postgres(
     engine: sqlalchemy.engine.Engine, table_name: str, df: DataFrame, dtypes: DataTypes
 ) -> None:
-    df.to_sql(table_name, engine, if_exists="replace", index=False, dtype=dtypes)
+    df.to_sql(table_name, engine, if_exists="append", index=False, dtype=dtypes)
     print("Data saved to PostgreSQL successfully!")
 
 
@@ -58,7 +58,7 @@ def fetch_dune_data(
     return df, dtypes
 
 
-def extract_dune_data(config: RuntimeConfig):
+def extract_dune_data(config: RuntimeConfig) -> None:
     df, types = fetch_dune_data(
         dune=DuneClient(env.dune_api_key, performance=config.query_engine),
         query=QueryBase(config.query_id),
@@ -68,7 +68,7 @@ def extract_dune_data(config: RuntimeConfig):
     bag.api_types = types
 
 
-def save_data(config: RuntimeConfig):
+def save_data(config: RuntimeConfig) -> None:
     if bag.df is None:
         return
 
@@ -76,7 +76,7 @@ def save_data(config: RuntimeConfig):
     save_to_postgres(engine, config.table_name, bag.df, bag.types)
 
 
-def create_pipeline(config: RuntimeConfig):
+def create_pipeline(config: RuntimeConfig) -> Pipeline:
     extract_data_task = Task(extract_dune_data, task_args=[config])
 
     transform_data_task = Task(reformat_varbinary_columns)
@@ -84,7 +84,7 @@ def create_pipeline(config: RuntimeConfig):
     save_data_task = Task(save_data, task_args=[config])
 
     pipeline = Pipeline()
-    pipeline.add(save_data_task, extract_data_task, transform_data_task)
+    pipeline.add(save_data_task, transform_data_task)
     pipeline.add(transform_data_task, extract_data_task)
 
     return pipeline
