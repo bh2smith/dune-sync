@@ -1,5 +1,5 @@
 from src.config import Env, RuntimeConfig
-from src.dune_to_local.main import dune_to_postgres
+from src.dune_to_local.postgres import dune_to_postgres
 
 
 def main() -> None:
