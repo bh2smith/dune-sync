@@ -56,13 +56,20 @@ def fetch_dune_data(dune_key: str, job: DuneToLocalJob) -> tuple[DataFrame, Data
 def save_to_postgres(
     engine: sqlalchemy.engine.Engine, table_name: str, df: DataFrame, dtypes: DataTypes
 ) -> None:
-    df.to_sql(table_name, engine, if_exists="replace", index=False, dtype=dtypes)
+    if df.empty:
+        log.warning("DataFrame is empty. Skipping save to PostgreSQL.")
+        return
+    with engine.connect() as connection:
+        df.to_sql(
+            table_name, connection, if_exists="replace", index=False, dtype=dtypes
+        )
     log.info("Data saved to %s successfully!", table_name)
 
 
 def dune_to_postgres(env: Env, job: DuneToLocalJob) -> None:
     df, types = fetch_dune_data(env.dune_api_key, job)
-    if df is not None:
+    if not df.empty:
+        # Skip engine creation if unnecessary.
         engine = create_engine(env.db_url)
         save_to_postgres(engine, job.table_name, df, types)
     else:
