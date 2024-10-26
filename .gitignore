@@ -1,3 +1,11 @@
+# Environment files
 .env
+
+# Python cache files
 __pycache__/
-.idea
+
+# IDE files
+.idea/
+
+# Pytest cache files
+.pytest_cache/
