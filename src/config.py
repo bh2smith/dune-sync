@@ -37,9 +37,9 @@ class Env:
         db_url = os.environ.get("DB_URL")
 
         if dune_api_key is None:
-            raise EnvironmentError("DUNE_API_KEY environment variable must be set!")
+            raise RuntimeError("DUNE_API_KEY environment variable must be set!")
         if db_url is None:
-            raise EnvironmentError("DB_URL environment variable must be set!")
+            raise RuntimeError("DB_URL environment variable must be set!")
 
         return cls(db_url, dune_api_key)
 
