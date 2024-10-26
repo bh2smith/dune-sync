@@ -47,7 +47,7 @@ def save_to_postgres(
     engine: sqlalchemy.engine.Engine, table_name: str, df: DataFrame, dtypes: DataTypes
 ) -> None:
     df.to_sql(table_name, engine, if_exists="replace", index=False, dtype=dtypes)
-    log.info("Data saved to PostgreSQL successfully!")
+    log.info("Data saved to %s successfully!", table_name)
 
 
 def main() -> None:
