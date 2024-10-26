@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from typing import Literal, Union
+from typing import Literal
 
 import tomli
 from dotenv import load_dotenv
@@ -70,7 +70,7 @@ class RuntimeConfig:
 
     @classmethod
     def load_from_toml(
-        cls, file_path: Union[str, os.PathLike] = "config.toml"
+        cls, file_path: str | os.PathLike = "config.toml"
     ) -> RuntimeConfig:
         """
         Reads the configuration from a TOML file and returns a RuntimeConfig object.

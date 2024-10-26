@@ -1,13 +1,15 @@
 """
 Utilities to create micro-ETL-like pipelines for easier and more maintainable sets of tasks
 """
+
 from __future__ import annotations
 
 # pragma pylint: disable=too-few-public-methods
 
 import graphlib
+from collections.abc import Hashable
 from graphlib import TopologicalSorter
-from typing import Callable, Optional, Iterable, Dict, Any, Hashable, Union
+from typing import Callable, Optional, Iterable, Any
 
 
 class DataBag:
@@ -15,10 +17,10 @@ class DataBag:
     Use this class as a singleton, and set properties on it to pass data between tasks.
     """
 
-    _bag: Dict[Any, Any] = {}
+    _bag: dict[Any, Any] = {}
     __databag = None
 
-    def __new__(cls, *args: Iterable[Any], **kwargs: Dict[Any, Any]) -> DataBag:
+    def __new__(cls, *args: Iterable[Any], **kwargs: dict[Any, Any]) -> DataBag:
         if not cls.__databag:
             cls.__databag = super(DataBag, cls).__new__(cls)
 
@@ -31,7 +33,7 @@ class DataBag:
     def __setattr__(self, key: Hashable, value: Any) -> None:
         self.__databag._bag[key] = value
 
-    def __getattr__(self, item: Any) -> Union[Any, None]:
+    def __getattr__(self, item: Any) -> Any | None:
         return self.__databag._bag.get(item, None)
 
 
@@ -64,8 +66,8 @@ class Task:
         self,
         _callable: Callable,
         name: Optional[str] = None,
-        task_args: Optional[Iterable] = None,
-        task_kwargs: Optional[dict] = None,
+        task_args: Optional[Iterable[Any]] = None,
+        task_kwargs: Optional[dict[str, Any]] = None,
     ):
         self.callable = _callable
         self.task_args = task_args or []

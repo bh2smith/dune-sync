@@ -24,6 +24,8 @@ def reformat_varbinary_columns() -> DataFrame:
     :return: pandas.DataFrame
     """
     df = bag.df or DataFrame()
+    if bag.varbin_columns is None:
+        return df
     for col in bag.varbin_columns:
         df[col] = df[col].apply(lambda x: bytes.fromhex(x[2:]) if pd.notnull(x) else x)
 
