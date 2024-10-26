@@ -38,14 +38,19 @@ def dune_result_to_df(result: ExecutionResult) -> tuple[DataFrame, dict[str, typ
 
 
 def fetch_dune_data(dune_key: str, job: DuneToLocalJob) -> tuple[DataFrame, DataTypes]:
-    result = (
-        DuneClient(dune_key, performance=job.query_engine)
-        .run_query(query=QueryBase(job.query_id), ping_frequency=job.poll_frequency)
-        .result
+    dune = DuneClient(dune_key, performance=job.query_engine)
+    response = dune.run_query(
+        query=QueryBase(
+            query_id=job.query_id,
+            params=[
+                # TODO: https://github.com/bh2smith/dune-sync/issues/30
+            ],
+        ),
+        ping_frequency=job.poll_frequency,
     )
-    if result is None:
+    if response.result is None:
         raise ValueError("Query execution failed!")
-    return dune_result_to_df(result)
+    return dune_result_to_df(response.result)
 
 
 def save_to_postgres(
