@@ -7,6 +7,8 @@ from typing import Literal
 import tomli
 from dotenv import load_dotenv
 
+from src.logger import log
+
 
 @dataclass
 class Env:
@@ -122,7 +124,5 @@ class RuntimeConfig:
         return config
 
     def validate(self) -> None:
-        # TODO: change to log.warn after https://github.com/bh2smith/dune-sync/pull/14
-        assert len(self.jobs) == len(
-            set(j.query_id for j in self.jobs)
-        ), "Same query in multiple jobs."
+        if len(self.jobs) == len(set(j.query_id for j in self.jobs)):
+            log.warning("Detected multiple jobs running the same query")
