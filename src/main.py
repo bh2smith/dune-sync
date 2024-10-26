@@ -9,8 +9,8 @@ from pandas import DataFrame
 from sqlalchemy import create_engine
 
 from src.config import Env, RuntimeConfig
-from src.mappings import DUNE_TO_PG
 from src.logger import log
+from src.mappings import DUNE_TO_PG
 
 DataTypes = dict[str, Any]
 

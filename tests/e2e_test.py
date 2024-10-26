@@ -1,18 +1,18 @@
-import unittest
 import datetime
+import unittest
+from os import getenv
 
 import pandas.testing
-
 from dune_client.models import ResultsResponse
-from sqlalchemy import create_engine
 from pandas import DataFrame
+from sqlalchemy import BIGINT, BOOLEAN, VARCHAR, DATE, TIMESTAMP
+from sqlalchemy import create_engine
+from sqlalchemy.dialects.postgresql import BYTEA
 
 from src.main import save_to_postgres, dune_result_to_df
 from tests.db_util import query_pg
-from sqlalchemy import BIGINT, BOOLEAN, VARCHAR, DATE, TIMESTAMP
-from sqlalchemy.dialects.postgresql import BYTEA
 
-DB_URL = "postgresql://postgres:postgres@localhost:5432/postgres"
+DB_URL = getenv("DB_URL", "postgresql://postgres:postgres@localhost:5432/postgres")
 
 SAMPLE_DUNE_RESULTS = ResultsResponse.from_dict(
     {
@@ -111,7 +111,3 @@ class TestEndToEnd(unittest.TestCase):
                 }
             ],
         )
-
-
-if __name__ == "__main__":
-    unittest.main()

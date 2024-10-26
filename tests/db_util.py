@@ -1,6 +1,7 @@
 from typing import Any
-from sqlalchemy import text
+
 import sqlalchemy
+from sqlalchemy import text
 
 
 def query_pg(engine: sqlalchemy.engine.Engine, query_str: str) -> list[dict[str, Any]]:
