@@ -1,11 +1,10 @@
 # Environment files
 .env
 
-# Python cache files
-__pycache__/
-
 # IDE files
 .idea/
 
-# Pytest cache files
+# Python cache files
+__pycache__/
 .pytest_cache/
+.mypy_cache
