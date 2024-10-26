@@ -1,3 +1,10 @@
+# Environment files
 .env
+
+# IDE files
+.idea/
+
+# Python cache files
 __pycache__/
-.idea
+.pytest_cache/
+.mypy_cache
