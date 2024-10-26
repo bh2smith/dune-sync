@@ -53,7 +53,7 @@ def save_to_postgres(
 def main() -> None:
     env = Env.load()
     config = RuntimeConfig.load_from_toml("config.toml")
-    # TODO(bh2smith): Async job execution
+    # TODO: Async job execution https://github.com/bh2smith/dune-sync/issues/20
     for job in config.jobs:
         df, types = fetch_dune_data(
             dune=DuneClient(env.dune_api_key, performance=job.query_engine),
