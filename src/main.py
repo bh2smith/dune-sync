@@ -9,6 +9,7 @@ from sqlalchemy import create_engine
 
 from src.config import Env, RuntimeConfig
 from src.mappings import DUNE_TO_PG
+from src.logger import log
 
 DataTypes = dict[str, Any]
 
@@ -44,7 +45,7 @@ def save_to_postgres(
     engine: sqlalchemy.engine.Engine, table_name: str, df: DataFrame, dtypes: DataTypes
 ) -> None:
     df.to_sql(table_name, engine, if_exists="replace", index=False, dtype=dtypes)
-    print("Data saved to PostgreSQL successfully!")
+    log.info("Data saved to PostgreSQL successfully!")
 
 
 def main() -> None:
