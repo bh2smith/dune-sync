@@ -7,3 +7,4 @@ pandas-stubs
 sqlalchemy-stubs
 pre-commit
 pytest
+pytest-cov
