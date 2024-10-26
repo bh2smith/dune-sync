@@ -1,6 +1,7 @@
 """
 Utilities to create micro-ETL-like pipelines for easier and more maintainable sets of tasks
 """
+from __future__ import annotations
 
 # pragma pylint: disable=too-few-public-methods
 
