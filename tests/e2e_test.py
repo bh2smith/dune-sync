@@ -9,7 +9,7 @@ from sqlalchemy import BIGINT, BOOLEAN, VARCHAR, DATE, TIMESTAMP
 from sqlalchemy import create_engine
 from sqlalchemy.dialects.postgresql import BYTEA
 
-from src.dune_to_local.main import save_to_postgres, dune_result_to_df
+from src.dune_to_local.postgres import save_to_postgres, dune_result_to_df
 from tests.db_util import query_pg
 
 DB_URL = getenv("DB_URL", "postgresql://postgres:postgres@localhost:5432/postgres")
