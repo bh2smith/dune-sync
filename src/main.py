@@ -30,8 +30,7 @@ def dune_result_to_df(result: ExecutionResult) -> tuple[DataFrame, dict[str, typ
         dtypes[name] = DUNE_TO_PG[d_type]
         if d_type == "varbinary":
             varbinary_columns.append(name)
-        if d_type == "array(varbinary)":
-            print(result.rows)
+
     df = pd.DataFrame(result.rows)
     # escape bytes
     df = reformat_varbinary_columns(df, varbinary_columns)
