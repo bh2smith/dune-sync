@@ -23,9 +23,16 @@ def reformat_varbinary_columns() -> DataFrame:
     Escapes byte-columns returned by the API
     :return: pandas.DataFrame
     """
-    df = bag.df or DataFrame()
+    # If there's no data then there's no data to process
+    if bag.df is None:
+        return DataFrame()
+
+    df = bag.df
+
+    # If we have data but no columns to fix, just return our actual current data
     if bag.varbin_columns is None:
         return df
+
     for col in bag.varbin_columns:
         df[col] = df[col].apply(lambda x: bytes.fromhex(x[2:]) if pd.notnull(x) else x)
 
