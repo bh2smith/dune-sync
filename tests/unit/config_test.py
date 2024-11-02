@@ -102,7 +102,6 @@ class TestRuntimeConfig(unittest.TestCase):
         self.assertEqual(job.poll_frequency, 1)  # Default poll frequency
         self.assertEqual(job.query_engine, "medium")  # Default query engine
 
-
     @patch(
         "builtins.open",
         new_callable=mock_open,
@@ -120,4 +119,3 @@ class TestRuntimeConfig(unittest.TestCase):
         self.assertEqual(len(config.dune_to_local_jobs), 0)
         self.assertEqual(len(config.local_to_dune_jobs), 1)
         job = config.local_to_dune_jobs[0]
-        

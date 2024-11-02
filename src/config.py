@@ -146,7 +146,10 @@ class RuntimeConfig:
             table_name = job["table_name"]
 
             if source == DataSource.DUNE and destination == DataSource.POSTGRES:
-                if "query_engine" in job and job["query_engine"] not in ["medium", "large"]:
+                if "query_engine" in job and job["query_engine"] not in [
+                    "medium",
+                    "large",
+                ]:
                     raise ValueError("query_engine must be either 'medium' or 'large'.")
                 dune_to_local_jobs.append(
                     DuneToLocalJob(
