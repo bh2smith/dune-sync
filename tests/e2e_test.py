@@ -96,7 +96,7 @@ class TestEndToEnd(unittest.TestCase):
             },
         )
 
-        save_to_postgres(engine, "test_table", df, types)
+        save_to_postgres(engine, "test_table", df, types, if_exists="replace")
 
         self.assertEqual(
             query_pg(engine, "select * from test_table"),

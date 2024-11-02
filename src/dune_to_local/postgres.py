@@ -64,7 +64,9 @@ def save_to_postgres(
         log.warning("DataFrame is empty. Skipping save to PostgreSQL.")
         return
     with engine.connect() as connection:
-        df.to_sql(table_name, connection, if_exists=if_exists, index=False, dtype=dtypes)
+        df.to_sql(
+            table_name, connection, if_exists=if_exists, index=False, dtype=dtypes
+        )
     log.info("Data saved to %s successfully!", table_name)
 
 
