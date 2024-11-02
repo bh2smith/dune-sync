@@ -44,6 +44,9 @@ class Env:
         return cls(db_url, dune_api_key)
 
 
+TableExistsPolicy = Literal["append", "replace"]
+
+
 @dataclass
 class DuneToLocalJob:
     """
@@ -65,6 +68,7 @@ class DuneToLocalJob:
     table_name: str
     poll_frequency: int
     query_engine: Literal["medium", "large"] = "medium"  # Default value is "medium"
+    if_exists: TableExistsPolicy = "append"  # Seems like the safest default.
 
 
 @dataclass
@@ -117,6 +121,7 @@ class RuntimeConfig:
                     table_name=table_name,
                     poll_frequency=poll_frequency,
                     query_engine=query_engine,
+                    if_exists=job.get("if_exists", "append"),
                 )
             )
         config = cls(jobs)

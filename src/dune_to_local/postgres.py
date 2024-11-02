@@ -8,7 +8,7 @@ from dune_client.query import QueryBase
 from pandas import DataFrame
 from sqlalchemy import create_engine
 
-from src.config import DuneToLocalJob, Env
+from src.config import DuneToLocalJob, Env, TableExistsPolicy
 from src.dune_to_local.mappings import DUNE_TO_PG
 from src.logger import log
 
@@ -54,15 +54,17 @@ def fetch_dune_data(dune_key: str, job: DuneToLocalJob) -> tuple[DataFrame, Data
 
 
 def save_to_postgres(
-    engine: sqlalchemy.engine.Engine, table_name: str, df: DataFrame, dtypes: DataTypes
+    engine: sqlalchemy.engine.Engine,
+    table_name: str,
+    df: DataFrame,
+    dtypes: DataTypes,
+    if_exists: TableExistsPolicy = "append",
 ) -> None:
     if df.empty:
         log.warning("DataFrame is empty. Skipping save to PostgreSQL.")
         return
     with engine.connect() as connection:
-        df.to_sql(
-            table_name, connection, if_exists="replace", index=False, dtype=dtypes
-        )
+        df.to_sql(table_name, connection, if_exists=if_exists, index=False, dtype=dtypes)
     log.info("Data saved to %s successfully!", table_name)
 
 
