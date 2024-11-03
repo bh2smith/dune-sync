@@ -6,9 +6,10 @@ from sqlalchemy import create_engine
 from src.interfaces import Destination
 from src.config import TableExistsPolicy
 from src.logger import log
+from src.types import TypedDataFrame
 
 
-class PostgresDestination(Destination[tuple[DataFrame, dict[str, Any]]]):
+class PostgresDestination(Destination[TypedDataFrame]):
     def __init__(
         self, db_url: str, table_name: str, if_exists: TableExistsPolicy = "append"
     ):
@@ -22,7 +23,7 @@ class PostgresDestination(Destination[tuple[DataFrame, dict[str, Any]]]):
 
     def save(
         self,
-        data: tuple[DataFrame, dict[str, Any]],
+        data: TypedDataFrame,
     ) -> None:
         df, dtypes = data
         if df.empty:

@@ -1,16 +1,29 @@
 from abc import ABC
-from typing import Any
+from typing import Type, Any
+
 import pandas as pd
-from pandas import DataFrame
 from dune_client.client import DuneClient
 from dune_client.models import ExecutionResult
+from pandas import DataFrame
+from sqlalchemy import BIGINT, BOOLEAN, VARCHAR, DATE, TIMESTAMP
+from sqlalchemy.dialects.postgresql import BYTEA, DOUBLE_PRECISION
 
-from src.interfaces import Source, T
 from src.config import DuneToLocalJob
-from src.dune_to_local.mappings import DUNE_TO_PG
+from src.interfaces import Source
+from src.types import TypedDataFrame
 
-
-TypedDataFrame = tuple[DataFrame, dict[str, Any]]
+DUNE_TO_PG: dict[str, Type[Any]] = {
+    "bigint": BIGINT,
+    "varbinary": BYTEA,
+    "date": DATE,
+    "boolean": BOOLEAN,
+    "varchar": VARCHAR,
+    "double": DOUBLE_PRECISION,
+    "timestamp with time zone": TIMESTAMP,
+    # TODO: parse these innards more dynamically.
+    # "decimal(38, 0)": NUMERIC(38, 0),
+    # "array(varbinary)": ARRAY(BYTEA),
+}
 
 
 def _reformat_varbinary_columns(
@@ -21,7 +34,7 @@ def _reformat_varbinary_columns(
     return df
 
 
-def _process_result(result: ExecutionResult) -> TypedDataFrame:
+def dune_result_to_df(result: ExecutionResult) -> TypedDataFrame:
     metadata = result.metadata
     dtypes, varbinary_columns = {}, []
     for name, d_type in zip(metadata.column_names, metadata.column_types):
@@ -51,7 +64,7 @@ class DuneSource(Source[TypedDataFrame], ABC):
         )
         if response.result is None:
             raise ValueError("Query execution failed!")
-        return _process_result(response.result)
+        return dune_result_to_df(response.result)
 
     def is_empty(self, data: TypedDataFrame) -> bool:
         return data[0].empty

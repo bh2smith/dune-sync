@@ -28,6 +28,7 @@ def postgres_to_dune(env: Env, job: LocalToDuneJob) -> None:
         destination=DuneDestination(env.dune_api_key, job.table_name),
     )
 
+
 # TODO: This is a bit of a hack to get around the fact that the Source and Destination
 # interfaces are generic but the implementations are not.
 # Soon we will introduce a Job class that will have this logic.

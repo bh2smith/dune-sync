@@ -13,8 +13,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.dialects.postgresql import BYTEA
 
 from src.config import Env, RuntimeConfig
-from src.dune_to_local.postgres import save_to_postgres, dune_result_to_df
-from src.local_to_dune.postgres import postgres_to_dune
+from src.destinations.postgres import PostgresDestination
+from src.sources.dune import dune_result_to_df
+from src.sync import postgres_to_dune
 from tests import fixtures_root
 from tests.db_util import query_pg
 
@@ -83,7 +84,7 @@ postgres_to_dune_test_df.insert(2, "hash", [memview_content])
 
 class TestEndToEnd(unittest.TestCase):
     def test_dune_results_to_db(self):
-        engine = create_engine(DB_URL)
+        pg = PostgresDestination(DB_URL, table_name="test_table", if_exists="replace")
         df, types = dune_result_to_df(SAMPLE_DUNE_RESULTS.result)
 
         expected = DataFrame(
@@ -111,10 +112,10 @@ class TestEndToEnd(unittest.TestCase):
             },
         )
 
-        save_to_postgres(engine, "test_table", df, types, if_exists="replace")
+        pg.save((df, types))
 
         self.assertEqual(
-            query_pg(engine, "select * from test_table"),
+            query_pg(pg.engine, "select * from test_table"),
             [
                 {
                     "block_date": datetime.date(2024, 9, 28),
@@ -128,11 +129,11 @@ class TestEndToEnd(unittest.TestCase):
         )
 
     @patch(
-        "src.local_to_dune.postgres.pd.read_sql_query",
+        "src.sources.postgres.pd.read_sql_query",
         return_value=postgres_to_dune_test_df,
     )
     @patch(
-        "src.local_to_dune.postgres.DuneClient.upload_csv",
+        "src.destinations.dune.DuneClient.upload_csv",
         name="mock_upload",
         return_value=True,
     )
@@ -149,16 +150,21 @@ class TestEndToEnd(unittest.TestCase):
 
         # this mostly tests pandas and the unittest.mock members, but we may consider making an actual test using a mock
         # Dune service as part of the test orchestration
-        res = postgres_to_dune(env, job)
 
-        self.assertTrue(res)
+        # Assert that no exception is raised during execution
+        try:
+            postgres_to_dune(env, job)
+        except Exception as e:
+            self.fail(
+                f"postgres_to_dune raised an exception {e} when it should not have"
+            )
 
     @patch(
-        "src.local_to_dune.postgres.pd.read_sql_query",
+        "src.sources.postgres.pd.read_sql_query",
         return_value=postgres_to_dune_test_df,
     )
     @patch(
-        "src.local_to_dune.postgres.DuneClient.upload_csv",
+        "src.destinations.dune.DuneClient.upload_csv",
         name="mock_upload",
         side_effect=DuneError(
             data={"what": "what"}, err=KeyError("bad stuff"), response_class="Foo"
