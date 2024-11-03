@@ -3,8 +3,7 @@ from pathlib import Path
 
 import src as root
 from src.config import Env, RuntimeConfig
-from src.dune_to_local.postgres import dune_to_postgres
-from src.local_to_dune.postgres import postgres_to_dune
+from src.recipe import dune_to_postgres, postgres_to_dune
 
 
 def main() -> None:
