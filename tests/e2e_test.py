@@ -9,7 +9,6 @@ import pandas.testing
 from dune_client.models import ResultsResponse, DuneError
 from pandas import DataFrame
 from sqlalchemy import BIGINT, BOOLEAN, VARCHAR, DATE, TIMESTAMP
-from sqlalchemy import create_engine
 from sqlalchemy.dialects.postgresql import BYTEA
 
 from src.config import Env, RuntimeConfig

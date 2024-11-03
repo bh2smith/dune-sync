@@ -8,7 +8,6 @@ from src.logger import log
 
 class DuneDestination(Destination[DataFrame]):
     def __init__(self, api_key: str, table_name: str):
-        self.api_key = api_key
         self.client = DuneClient(api_key)
         self.table_name: str = table_name
 
