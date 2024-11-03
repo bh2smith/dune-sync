@@ -1,14 +1,6 @@
 [[jobs]]
-source = "dune"
-destination = "postgres"
-table_name = "results_4159712"
 query_id = 4159712
-poll_frequency = 5
+table_name = "results_4159712"
+poll_frequency = 2
 query_engine = "medium"
-
-
-[[jobs]]
-source = "postgres"
-destination = "dune"
-table_name = "dune_destination_table"
-query_string = "SELECT * FROM results_4159712"
+if_exists = "append"
