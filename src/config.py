@@ -3,10 +3,12 @@ from __future__ import annotations
 from enum import Enum
 import os
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, Any
 
 import tomli
 from dotenv import load_dotenv
+from dune_client.query import QueryBase
+from dune_client.types import ParameterType, QueryParameter
 
 from src.logger import log
 
@@ -54,6 +56,28 @@ class DataSource(Enum):
     DUNE = "dune"
 
 
+def parse_query_parameters(params: list[dict[str, Any]]) -> list[QueryParameter]:
+    query_params = []
+    for param in params:
+        name = param["name"]
+        param_type = ParameterType.from_string(param["type"])
+        value = param["value"]
+
+        if param_type == ParameterType.TEXT:
+            query_params.append(QueryParameter.text_type(name, value))
+        elif param_type == ParameterType.NUMBER:
+            query_params.append(QueryParameter.number_type(name, value))
+        elif param_type == ParameterType.DATE:
+            query_params.append(QueryParameter.date_type(name, value))
+        elif param_type == ParameterType.ENUM:
+            query_params.append(QueryParameter.enum_type(name, value))
+        else:
+            # Can't happen.
+            raise ValueError(f"Unknown parameter type: {param['type']}")
+
+    return query_params
+
+
 @dataclass
 class BaseJob:
     """Base class for all jobs with common attributes"""
@@ -77,8 +101,8 @@ class DuneToLocalJob(BaseJob):
 
     Attributes
     ----------
-    query_id : int
-        The ID of the query to execute.
+    query : QueryBase
+        The, possibly parameterized, query to execute.
     table_name : str
         The name of the table where the query results will be stored.
     poll_frequency : int
@@ -87,9 +111,10 @@ class DuneToLocalJob(BaseJob):
         The query engine to use, either "medium" or "large" (default is "medium").
     """
 
-    query_id: int
+    query: QueryBase
     poll_frequency: int
     query_engine: Literal["medium", "large"] = "medium"  # Default value is "medium"
+    if_exists: TableExistsPolicy = "append"
 
 
 @dataclass
@@ -161,9 +186,15 @@ class RuntimeConfig:
                         source=source,
                         destination=destination,
                         table_name=table_name,
-                        query_id=job["query_id"],
+                        query=QueryBase(
+                            query_id=job["query_id"],
+                            params=parse_query_parameters(
+                                job.get("query_parameters", [])
+                            ),
+                        ),
                         poll_frequency=job.get("poll_frequency", 1),
                         query_engine=job.get("query_engine", "medium"),
+                        if_exists=job.get("if_exists", "append"),
                     )
                 )
             elif source == DataSource.POSTGRES and destination == DataSource.DUNE:
@@ -185,11 +216,8 @@ class RuntimeConfig:
         return config
 
     def validate(self) -> None:
-        if len(self.dune_to_local_jobs) == len(
-            set(j.query_id for j in self.dune_to_local_jobs)
-        ):
+        num_jobs = len(self.dune_to_local_jobs)
+        if num_jobs != len(set(j.query.query_id for j in self.dune_to_local_jobs)):
             log.warning("Detected multiple jobs running the same query")
-        if len(self.local_to_dune_jobs) == len(
-            set(j.table_name for j in self.local_to_dune_jobs)
-        ):
-            log.warning("Detected multiple jobs writing to the same table")
+        if num_jobs != len(set(j.table_name for j in self.dune_to_local_jobs)):
+            log.warning("Detected duplicate table names in job list")

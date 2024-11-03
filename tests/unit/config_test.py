@@ -1,7 +1,11 @@
 import os
 import unittest
+from datetime import datetime
 from unittest.mock import patch, mock_open
-from src.config import Env, RuntimeConfig
+
+from dune_client.types import QueryParameter
+
+from src.config import Env, RuntimeConfig, parse_query_parameters
 
 
 class TestEnv(unittest.TestCase):
@@ -57,7 +61,7 @@ class TestRuntimeConfig(unittest.TestCase):
         config = RuntimeConfig.load_from_toml("config.toml")
         self.assertEqual(len(config.dune_to_local_jobs), 1)
         job = config.dune_to_local_jobs[0]
-        self.assertEqual(job.query_id, 123)
+        self.assertEqual(job.query.query_id, 123)
         self.assertEqual(job.table_name, "test_table")
         self.assertEqual(job.poll_frequency, 5)
         self.assertEqual(job.query_engine, "medium")
@@ -118,7 +122,7 @@ class TestRuntimeConfig(unittest.TestCase):
         config = RuntimeConfig.load_from_toml("config.toml")
         self.assertEqual(len(config.dune_to_local_jobs), 1)
         job = config.dune_to_local_jobs[0]
-        self.assertEqual(job.query_id, 123)
+        self.assertEqual(job.query.query_id, 123)
         self.assertEqual(job.table_name, "test_table")  # Default table name
         self.assertEqual(job.poll_frequency, 1)  # Default poll frequency
         self.assertEqual(job.query_engine, "medium")  # Default query engine
@@ -139,4 +143,38 @@ class TestRuntimeConfig(unittest.TestCase):
         config = RuntimeConfig.load_from_toml("config.toml")
         self.assertEqual(len(config.dune_to_local_jobs), 0)
         self.assertEqual(len(config.local_to_dune_jobs), 1)
-        job = config.local_to_dune_jobs[0]
+        # job = config.local_to_dune_jobs[0]
+
+
+class TestParseQueryParameters(unittest.TestCase):
+
+    def test_parse_query_parameters(self):
+        params = [
+            {"name": "param_text", "type": "TEXT", "value": "sample text"},
+            {"name": "param_number", "type": "NUMBER", "value": 42},
+            {"name": "param_date", "type": "DATE", "value": "2024-09-01 00:00:00"},
+            {"name": "param_enum", "type": "ENUM", "value": "option1"}
+        ]
+
+        query_params = parse_query_parameters(params)
+
+        # Assert the number of parsed parameters
+        self.assertEqual(len(query_params), 4)
+
+        # Check each parameter type and value
+        self.assertEqual(query_params[0], QueryParameter.text_type("param_text", "sample text"))
+        self.assertEqual(query_params[1], QueryParameter.number_type("param_number", 42))
+        self.assertEqual(
+            query_params[2],
+            QueryParameter.date_type("param_date", datetime.strptime("2024-09-01 00:00:00", "%Y-%m-%d %H:%M:%S"))
+        )
+        self.assertEqual(query_params[3], QueryParameter.enum_type("param_enum", "option1"))
+
+    def test_unknown_parameter_type(self):
+        params = [{"name": "param_unknown", "type": "UNKNOWN", "value": "some value"}]
+
+        # Expect a ValueError for unknown parameter type
+        with self.assertRaises(ValueError) as context:
+            parse_query_parameters(params)
+
+        self.assertIn("could not parse", str(context.exception))

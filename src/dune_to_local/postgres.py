@@ -4,7 +4,6 @@ import pandas as pd
 import sqlalchemy
 from dune_client.client import DuneClient
 from dune_client.models import ExecutionResult
-from dune_client.query import QueryBase
 from pandas import DataFrame
 from sqlalchemy import create_engine
 
@@ -40,12 +39,7 @@ def dune_result_to_df(result: ExecutionResult) -> tuple[DataFrame, dict[str, typ
 def fetch_dune_data(dune_key: str, job: DuneToLocalJob) -> tuple[DataFrame, DataTypes]:
     dune = DuneClient(dune_key, performance=job.query_engine)
     response = dune.run_query(
-        query=QueryBase(
-            query_id=job.query_id,
-            params=[
-                # TODO: https://github.com/bh2smith/dune-sync/issues/30
-            ],
-        ),
+        query=job.query,
         ping_frequency=job.poll_frequency,
     )
     if response.result is None:
@@ -75,6 +69,6 @@ def dune_to_postgres(env: Env, job: DuneToLocalJob) -> None:
     if not df.empty:
         # Skip engine creation if unnecessary.
         engine = create_engine(env.db_url)
-        save_to_postgres(engine, job.table_name, df, types)
+        save_to_postgres(engine, job.table_name, df, types, if_exists=job.if_exists)
     else:
         log.warning("No Query results found! Skipping write")
