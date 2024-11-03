@@ -72,9 +72,13 @@ SAMPLE_DUNE_RESULTS = ResultsResponse.from_dict(
 
 with open(fixtures_root / "simple_dune_upload.csv") as csv_file:
     reader = csv.reader(csv_file)
+    next(reader)
     data = [line for line in reader]
+postgres_to_dune_test_df = pandas.DataFrame.from_records(data)
 
-SAMPLE_CSV_FOR_PANDAS_MOCK = pandas.DataFrame.from_records(data)
+# add a memoryview column - this is what BYTEA postgres types are converted to
+memview_content = memoryview(b"foo")
+postgres_to_dune_test_df.insert(2, "hash", [memview_content])
 
 
 class TestEndToEnd(unittest.TestCase):
@@ -125,7 +129,7 @@ class TestEndToEnd(unittest.TestCase):
 
     @patch(
         "src.local_to_dune.postgres.pd.read_sql_query",
-        return_value=SAMPLE_CSV_FOR_PANDAS_MOCK,
+        return_value=postgres_to_dune_test_df,
     )
     @patch(
         "src.local_to_dune.postgres.DuneClient.upload_csv",
@@ -151,7 +155,7 @@ class TestEndToEnd(unittest.TestCase):
 
     @patch(
         "src.local_to_dune.postgres.pd.read_sql_query",
-        return_value=SAMPLE_CSV_FOR_PANDAS_MOCK,
+        return_value=postgres_to_dune_test_df,
     )
     @patch(
         "src.local_to_dune.postgres.DuneClient.upload_csv",

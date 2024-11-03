@@ -7,11 +7,21 @@ from src.config import Env, LocalToDuneJob
 from src.logger import log
 
 
+def convert_bytea_to_hex(df: pd.DataFrame) -> pd.DataFrame:
+    for column in df.columns:
+        if isinstance(df[column].iloc[0], memoryview):
+            df[column] = df[column].apply(lambda x: f"0x{x.tobytes().hex()}")
+    return df
+
+
 def extract_data_from_postgres(env: Env, job: LocalToDuneJob) -> pd.DataFrame:
     log.debug("Reading data from Postgres...")
     engine = create_engine(env.db_url)
     log.debug("Successfully read data into pandas DF")
-    return pd.read_sql_query(job.query_string, con=engine)
+
+    df = pd.read_sql_query(job.query_string, con=engine)
+    df = convert_bytea_to_hex(df)
+    return df
 
 
 def load_data_into_dune(df: pd.DataFrame, env: Env, job: LocalToDuneJob) -> bool:
