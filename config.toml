@@ -1,6 +1,37 @@
+#[[jobs]]
+#source = "dune"
+#destination = "postgres"
+#table_name = "results_4194034"
+#query_id = 4194034
+#poll_frequency = 5
+#query_engine = "medium"
+
+#[[jobs]]
+#source = "dune"
+#destination = "postgres"
+#table_name = "results_4194034"
+#query_id = 4194034
+#poll_frequency = 5
+#query_engine = "medium"
+
+#[[jobs]]
+#source = "postgres"
+#destination = "dune"
+#table_name = "dune_destination_table"
+#query_string = "SELECT * FROM results_4159712"
+
+# hoomoos test job FROM POSTGRES
 [[jobs]]
-query_id = 4159712
-table_name = "results_4159712"
-poll_frequency = 2
-query_engine = "medium"
-if_exists = "append"
+source = "postgres"
+destination = "dune"
+table_name = "some_dummy_table_again"
+query_string = "SELECT * FROM results_4194034"
+
+# hoomoos test job FROM DUNE
+#[[jobs]]
+#source = "dune"
+#destination = "postgres"
+#table_name = "results_4194034"
+#query_id = 4194034
+#poll_frequency = 5
+#query_engine = "medium"

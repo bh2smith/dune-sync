@@ -1,15 +1,21 @@
+import csv
 import datetime
+import os
 import unittest
 from os import getenv
+from unittest.mock import patch
 
 import pandas.testing
-from dune_client.models import ResultsResponse
+from dune_client.models import ResultsResponse, DuneError
 from pandas import DataFrame
 from sqlalchemy import BIGINT, BOOLEAN, VARCHAR, DATE, TIMESTAMP
 from sqlalchemy import create_engine
 from sqlalchemy.dialects.postgresql import BYTEA
 
+from src.config import Env, RuntimeConfig
 from src.dune_to_local.postgres import save_to_postgres, dune_result_to_df
+from src.local_to_dune.postgres import postgres_to_dune
+from tests import fixtures_root
 from tests.db_util import query_pg
 
 DB_URL = getenv("DB_URL", "postgresql://postgres:postgres@localhost:5432/postgres")
@@ -64,10 +70,19 @@ SAMPLE_DUNE_RESULTS = ResultsResponse.from_dict(
     }
 )
 
+with open(fixtures_root / "simple_dune_upload.csv") as csv_file:
+    reader = csv.reader(csv_file)
+    next(reader)
+    data = [line for line in reader]
+postgres_to_dune_test_df = pandas.DataFrame.from_records(data)
+
+# add a memoryview column - this is what BYTEA postgres types are converted to
+memview_content = memoryview(b"foo")
+postgres_to_dune_test_df.insert(2, "hash", [memview_content])
+
 
 class TestEndToEnd(unittest.TestCase):
     def test_dune_results_to_db(self):
-
         engine = create_engine(DB_URL)
         df, types = dune_result_to_df(SAMPLE_DUNE_RESULTS.result)
 
@@ -111,3 +126,66 @@ class TestEndToEnd(unittest.TestCase):
                 }
             ],
         )
+
+    @patch(
+        "src.local_to_dune.postgres.pd.read_sql_query",
+        return_value=postgres_to_dune_test_df,
+    )
+    @patch(
+        "src.local_to_dune.postgres.DuneClient.upload_csv",
+        name="mock_upload",
+        return_value=True,
+    )
+    @patch("src.config.load_dotenv")
+    @patch.dict(os.environ, {"DUNE_API_KEY": "test_key", "DB_URL": DB_URL})
+    def test_local_postgres_to_dune(self, *_):
+        # set up test resources
+        env = Env.load()
+
+        conf = RuntimeConfig.load_from_toml(
+            fixtures_root / "postgres_to_dune.config.toml"
+        )
+        job = conf.local_to_dune_jobs[0]
+
+        # this mostly tests pandas and the unittest.mock members, but we may consider making an actual test using a mock
+        # Dune service as part of the test orchestration
+        res = postgres_to_dune(env, job)
+
+        self.assertTrue(res)
+
+    @patch(
+        "src.local_to_dune.postgres.pd.read_sql_query",
+        return_value=postgres_to_dune_test_df,
+    )
+    @patch(
+        "src.local_to_dune.postgres.DuneClient.upload_csv",
+        name="mock_upload",
+        side_effect=DuneError(
+            data={"what": "what"}, err=KeyError("bad stuff"), response_class="Foo"
+        ),
+    )
+    @patch("src.config.load_dotenv")
+    @patch.dict(os.environ, {"DUNE_API_KEY": "test_key", "DB_URL": DB_URL})
+    def test_local_postgres_to_dune_errors(self, mock_env, mock_upload, mock_read_sql):
+        # set up test resources
+        env = Env.load()
+
+        conf = RuntimeConfig.load_from_toml(
+            fixtures_root / "postgres_to_dune.config.toml"
+        )
+        job = conf.local_to_dune_jobs[0]
+
+        with self.assertLogs(level="ERROR") as logs:
+            res = postgres_to_dune(env, job)
+
+        self.assertIn("Dune did not accept our upload:", "".join(logs.output))
+        self.assertFalse(res)
+
+        mock_upload.reset_mock()
+        mock_upload.side_effect = ZeroDivisionError("oops.")
+
+        with self.assertLogs(level="ERROR") as logs:
+            res = postgres_to_dune(env, job)
+
+        self.assertFalse(res)
+        self.assertIn("Unexpected error: oops.", "".join(logs.output))

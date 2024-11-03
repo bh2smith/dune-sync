@@ -87,6 +87,27 @@ class TestRuntimeConfig(unittest.TestCase):
         new_callable=mock_open,
         read_data=b"""
         [[jobs]]
+        source = "postgres"
+        destination = "postgres"
+        query_id = 123
+        table_name = "test_table"
+        poll_frequency = 5
+        query_engine = "invalid"
+    """,
+    )
+    def test_load_from_toml_invalid_source_dest_combo(self, mock_file):
+        with self.assertRaises(ValueError) as context:
+            RuntimeConfig.load_from_toml("config.toml")
+        self.assertEqual(
+            str(context.exception),
+            "Invalid source/destination combination: DataSource.POSTGRES -> DataSource.POSTGRES",
+        )
+
+    @patch(
+        "builtins.open",
+        new_callable=mock_open,
+        read_data=b"""
+        [[jobs]]
         source = "dune"
         destination = "postgres"
         table_name = "test_table"
@@ -106,7 +127,7 @@ class TestRuntimeConfig(unittest.TestCase):
         "builtins.open",
         new_callable=mock_open,
         read_data=b"""
-        
+
         [[jobs]]
         source = "postgres"
         destination = "dune"

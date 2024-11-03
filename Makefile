@@ -32,7 +32,7 @@ check:
 
 
 test:
-	python -m pytest tests/
+	python -m pytest --cov=src --cov-report=xml --cov-fail-under=80 tests/
 
 run:
 	python -m src.main
