@@ -1,3 +1,4 @@
+# pragma: no cover
 from pathlib import Path
 
 import src as root
