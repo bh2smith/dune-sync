@@ -35,3 +35,6 @@ class PostgresSource(Source[DataFrame]):
     def fetch(self) -> DataFrame:
         df = pd.read_sql_query(self.job.query_string, con=self.engine)
         return _convert_bytea_to_hex(df)
+
+    def is_empty(self, data: DataFrame) -> bool:
+        return data.empty

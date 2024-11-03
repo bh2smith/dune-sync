@@ -16,6 +16,10 @@ class Source(ABC, Generic[T]):
     def validate(self) -> bool:
         """Validate the source configuration"""
 
+    @abstractmethod
+    def is_empty(self, data: T) -> bool:
+        """Return True if the fetched data is empty"""
+
 
 class Destination(ABC, Generic[T]):
     """Abstract base class for data destinations"""
