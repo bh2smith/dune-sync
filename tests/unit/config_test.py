@@ -150,33 +150,23 @@ class TestParseQueryParameters(unittest.TestCase):
 
     def test_parse_query_parameters(self):
         params = [
-            {"name": "param_text", "type": "TEXT", "value": "sample text"},
-            {"name": "param_number", "type": "NUMBER", "value": 42},
-            {"name": "param_date", "type": "DATE", "value": "2024-09-01 00:00:00"},
-            {"name": "param_enum", "type": "ENUM", "value": "option1"},
+            {"name": "text", "type": "TEXT", "value": "sample text"},
+            {"name": "number", "type": "NUMBER", "value": 42},
+            {"name": "date", "type": "DATE", "value": "2024-09-01 00:00:00"},
+            {"name": "enum", "type": "ENUM", "value": "option1"},
         ]
 
-        query_params = parse_query_parameters(params)
-
-        # Assert the number of parsed parameters
-        self.assertEqual(len(query_params), 4)
-
-        # Check each parameter type and value
         self.assertEqual(
-            query_params[0], QueryParameter.text_type("param_text", "sample text")
-        )
-        self.assertEqual(
-            query_params[1], QueryParameter.number_type("param_number", 42)
-        )
-        self.assertEqual(
-            query_params[2],
-            QueryParameter.date_type(
-                "param_date",
-                datetime.strptime("2024-09-01 00:00:00", "%Y-%m-%d %H:%M:%S"),
-            ),
-        )
-        self.assertEqual(
-            query_params[3], QueryParameter.enum_type("param_enum", "option1")
+            parse_query_parameters(params),
+            [
+                QueryParameter.text_type("text", "sample text"),
+                QueryParameter.number_type("number", 42),
+                QueryParameter.date_type(
+                    "date",
+                    datetime.strptime("2024-09-01 00:00:00", "%Y-%m-%d %H:%M:%S"),
+                ),
+                QueryParameter.enum_type("enum", "option1"),
+            ],
         )
 
     def test_unknown_parameter_type(self):
