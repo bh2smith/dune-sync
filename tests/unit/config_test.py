@@ -153,7 +153,7 @@ class TestParseQueryParameters(unittest.TestCase):
             {"name": "param_text", "type": "TEXT", "value": "sample text"},
             {"name": "param_number", "type": "NUMBER", "value": 42},
             {"name": "param_date", "type": "DATE", "value": "2024-09-01 00:00:00"},
-            {"name": "param_enum", "type": "ENUM", "value": "option1"}
+            {"name": "param_enum", "type": "ENUM", "value": "option1"},
         ]
 
         query_params = parse_query_parameters(params)
@@ -162,13 +162,22 @@ class TestParseQueryParameters(unittest.TestCase):
         self.assertEqual(len(query_params), 4)
 
         # Check each parameter type and value
-        self.assertEqual(query_params[0], QueryParameter.text_type("param_text", "sample text"))
-        self.assertEqual(query_params[1], QueryParameter.number_type("param_number", 42))
+        self.assertEqual(
+            query_params[0], QueryParameter.text_type("param_text", "sample text")
+        )
+        self.assertEqual(
+            query_params[1], QueryParameter.number_type("param_number", 42)
+        )
         self.assertEqual(
             query_params[2],
-            QueryParameter.date_type("param_date", datetime.strptime("2024-09-01 00:00:00", "%Y-%m-%d %H:%M:%S"))
+            QueryParameter.date_type(
+                "param_date",
+                datetime.strptime("2024-09-01 00:00:00", "%Y-%m-%d %H:%M:%S"),
+            ),
         )
-        self.assertEqual(query_params[3], QueryParameter.enum_type("param_enum", "option1"))
+        self.assertEqual(
+            query_params[3], QueryParameter.enum_type("param_enum", "option1")
+        )
 
     def test_unknown_parameter_type(self):
         params = [{"name": "param_unknown", "type": "UNKNOWN", "value": "some value"}]
