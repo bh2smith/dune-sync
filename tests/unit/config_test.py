@@ -45,6 +45,8 @@ class TestRuntimeConfig(unittest.TestCase):
         new_callable=mock_open,
         read_data=b"""
         [[jobs]]
+        source = "dune"
+        destination = "postgres"
         query_id = 123
         table_name = "test_table"
         poll_frequency = 5
@@ -53,8 +55,8 @@ class TestRuntimeConfig(unittest.TestCase):
     )
     def test_load_from_toml_success(self, mock_file):
         config = RuntimeConfig.load_from_toml("config.toml")
-        self.assertEqual(len(config.jobs), 1)
-        job = config.jobs[0]
+        self.assertEqual(len(config.dune_to_local_jobs), 1)
+        job = config.dune_to_local_jobs[0]
         self.assertEqual(job.query_id, 123)
         self.assertEqual(job.table_name, "test_table")
         self.assertEqual(job.poll_frequency, 5)
@@ -65,6 +67,8 @@ class TestRuntimeConfig(unittest.TestCase):
         new_callable=mock_open,
         read_data=b"""
         [[jobs]]
+        source = "dune"
+        destination = "postgres"
         query_id = 123
         table_name = "test_table"
         poll_frequency = 5
@@ -83,14 +87,35 @@ class TestRuntimeConfig(unittest.TestCase):
         new_callable=mock_open,
         read_data=b"""
         [[jobs]]
+        source = "dune"
+        destination = "postgres"
+        table_name = "test_table"
         query_id = 123
     """,
     )
     def test_load_from_toml_missing_values(self, mock_file):
         config = RuntimeConfig.load_from_toml("config.toml")
-        self.assertEqual(len(config.jobs), 1)
-        job = config.jobs[0]
+        self.assertEqual(len(config.dune_to_local_jobs), 1)
+        job = config.dune_to_local_jobs[0]
         self.assertEqual(job.query_id, 123)
-        self.assertEqual(job.table_name, "dune_data_123")  # Default table name
+        self.assertEqual(job.table_name, "test_table")  # Default table name
         self.assertEqual(job.poll_frequency, 1)  # Default poll frequency
         self.assertEqual(job.query_engine, "medium")  # Default query engine
+
+    @patch(
+        "builtins.open",
+        new_callable=mock_open,
+        read_data=b"""
+        
+        [[jobs]]
+        source = "postgres"
+        destination = "dune"
+        table_name = "test_table"
+        query_string = "SELECT * FROM test_table"
+    """,
+    )
+    def test_load_from_toml_for_local_to_dune(self, mock_file):
+        config = RuntimeConfig.load_from_toml("config.toml")
+        self.assertEqual(len(config.dune_to_local_jobs), 0)
+        self.assertEqual(len(config.local_to_dune_jobs), 1)
+        job = config.local_to_dune_jobs[0]
