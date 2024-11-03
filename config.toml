@@ -1,44 +1,6 @@
-# Queries from Dashboard: https://dune.com/cowprotocol/cow-amms-v2
 [[jobs]]
-query_id = 3967954
-table_name = "results_3967954"
-poll_frequency = 20
+query_id = 4159712
+table_name = "results_4159712"
+poll_frequency = 2
 query_engine = "medium"
-
-[[jobs]]
-query_id = 3968105
-table_name = "results_3968105"
-poll_frequency = 20
-query_engine = "large"
-
-[[jobs]]
-query_id = 3968374
-table_name = "results_3968374"
-poll_frequency = 20
-query_engine = "medium"
-
-[[jobs]]
-query_id = 4059180
-table_name = "results_4059180"
-poll_frequency = 20
-query_engine = "medium"
-
-
-[[jobs]]
-query_id = 4059465
-table_name = "results_4059465"
-poll_frequency = 20
-query_engine = "medium"
-
-[[jobs]]
-query_id = 4062641
-table_name = "results_4062641"
-poll_frequency = 20
-query_engine = "medium"
-
-
-[[jobs]]
-query_id = 4063502
-table_name = "results_4063502"
-poll_frequency = 20
-query_engine = "medium"
+if_exists = "append"
