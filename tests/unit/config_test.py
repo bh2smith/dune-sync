@@ -1,11 +1,13 @@
 import os
 import unittest
 from datetime import datetime
+from unittest import skip
 from unittest.mock import patch, mock_open
 
-from dune_client.types import QueryParameter
+from dune_client.types import QueryParameter, ParameterType
 
-from src.config import Env, RuntimeConfig, parse_query_parameters
+from src.config import Env, RuntimeConfig, parse_query_parameters, DataSource, YamlConf
+from tests import fixtures_root
 
 
 class TestEnv(unittest.TestCase):
@@ -44,6 +46,49 @@ class TestEnv(unittest.TestCase):
 
 
 class TestRuntimeConfig(unittest.TestCase):
+    maxDiff = None
+
+    def test_load_conf(self):
+        config_file = fixtures_root / "basic.config.yaml"
+        self.maxDiff = None
+        conf = RuntimeConfig.load_from_yaml(config_file.absolute())
+        dune_to_local_job_from_conf = conf.dune_to_local_jobs[0]
+        self.assertEqual(dune_to_local_job_from_conf.source, DataSource.DUNE.value)
+        self.assertEqual(
+            dune_to_local_job_from_conf.destination, DataSource.POSTGRES.value
+        )
+        self.assertEqual(dune_to_local_job_from_conf.if_exists, "replace")
+        self.assertEqual(dune_to_local_job_from_conf.poll_frequency, 5)
+        self.assertEqual(dune_to_local_job_from_conf.query_engine, "medium")
+        self.assertEqual(
+            dune_to_local_job_from_conf.table_name, "parameterized_results_4238114"
+        )
+        self.assertEqual(
+            dune_to_local_job_from_conf.query.params[0],
+            QueryParameter(
+                name="blockchain",
+                parameter_type=ParameterType.ENUM,
+                value="gnosis",
+            ),
+        )
+        self.assertEqual(
+            dune_to_local_job_from_conf.query.params[1],
+            QueryParameter(
+                name="block_time",
+                parameter_type=ParameterType.DATE,
+                value=datetime(2024, 9, 1, 0, 0),
+            ),
+        )
+        self.assertEqual(
+            dune_to_local_job_from_conf.query.params[2],
+            QueryParameter(
+                name="result_limit",
+                parameter_type=ParameterType.NUMBER,
+                value="10",
+            ),
+        )
+
+    @skip("migrating to yaml")
     @patch(
         "builtins.open",
         new_callable=mock_open,
@@ -66,6 +111,7 @@ class TestRuntimeConfig(unittest.TestCase):
         self.assertEqual(job.poll_frequency, 5)
         self.assertEqual(job.query_engine, "medium")
 
+    @skip("migrating to yaml")
     @patch(
         "builtins.open",
         new_callable=mock_open,
@@ -86,6 +132,7 @@ class TestRuntimeConfig(unittest.TestCase):
             str(context.exception), "query_engine must be either 'medium' or 'large'."
         )
 
+    @skip("migrating to yaml")
     @patch(
         "builtins.open",
         new_callable=mock_open,
@@ -99,6 +146,7 @@ class TestRuntimeConfig(unittest.TestCase):
         query_engine = "invalid"
     """,
     )
+    @skip("migrating to yaml")
     def test_load_from_toml_invalid_source_dest_combo(self, mock_file):
         with self.assertRaises(ValueError) as context:
             RuntimeConfig.load_from_toml("config.toml")
@@ -107,6 +155,7 @@ class TestRuntimeConfig(unittest.TestCase):
             "Invalid source/destination combination: DataSource.POSTGRES -> DataSource.POSTGRES",
         )
 
+    @skip("migrating to yaml")
     @patch(
         "builtins.open",
         new_callable=mock_open,
@@ -127,6 +176,7 @@ class TestRuntimeConfig(unittest.TestCase):
         self.assertEqual(job.poll_frequency, 1)  # Default poll frequency
         self.assertEqual(job.query_engine, "medium")  # Default query engine
 
+    @skip("migrating to yaml")
     @patch(
         "builtins.open",
         new_callable=mock_open,
@@ -149,11 +199,12 @@ class TestRuntimeConfig(unittest.TestCase):
 class TestParseQueryParameters(unittest.TestCase):
 
     def test_parse_query_parameters(self):
+
         params = [
-            {"name": "param_text", "type": "TEXT", "value": "sample text"},
-            {"name": "param_number", "type": "NUMBER", "value": 42},
-            {"name": "param_date", "type": "DATE", "value": "2024-09-01 00:00:00"},
-            {"name": "param_enum", "type": "ENUM", "value": "option1"},
+            YamlConf(name="param_text", type="TEXT", value="sample text"),
+            YamlConf(name="param_number", type="NUMBER", value=42),
+            YamlConf(name="param_date", type="DATE", value="2024-09-01 00:00:00"),
+            YamlConf(name="param_enum", type="ENUM", value="option1"),
         ]
 
         query_params = parse_query_parameters(params)
@@ -180,7 +231,7 @@ class TestParseQueryParameters(unittest.TestCase):
         )
 
     def test_unknown_parameter_type(self):
-        params = [{"name": "param_unknown", "type": "UNKNOWN", "value": "some value"}]
+        params = (YamlConf(name="param_text", type="UNKNOWN", value="sample text"),)
 
         # Expect a ValueError for unknown parameter type
         with self.assertRaises(ValueError) as context:

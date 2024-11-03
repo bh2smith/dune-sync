@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from enum import Enum
 import os
 from dataclasses import dataclass
-from typing import Literal, Any
+from enum import Enum
+from pathlib import Path
+from typing import Literal, Any, Union
 
 import tomli
+import yaml
 from dotenv import load_dotenv
 from dune_client.query import QueryBase
 from dune_client.types import ParameterType, QueryParameter
@@ -56,12 +58,14 @@ class DataSource(Enum):
     DUNE = "dune"
 
 
-def parse_query_parameters(params: list[dict[str, Any]]) -> list[QueryParameter]:
+def parse_query_parameters(
+    params: Union[list[YamlConf], tuple[YamlConf]]
+) -> list[QueryParameter]:
     query_params = []
     for param in params:
-        name = param["name"]
-        param_type = ParameterType.from_string(param["type"])
-        value = param["value"]
+        name = param.name
+        param_type = ParameterType.from_string(param.type)
+        value = param.value
 
         if param_type == ParameterType.TEXT:
             query_params.append(QueryParameter.text_type(name, value))
@@ -73,7 +77,7 @@ def parse_query_parameters(params: list[dict[str, Any]]) -> list[QueryParameter]
             query_params.append(QueryParameter.enum_type(name, value))
         else:
             # Can't happen.
-            raise ValueError(f"Unknown parameter type: {param['type']}")
+            raise ValueError(f"Unknown parameter type: {param.type}")
 
     return query_params
 
@@ -129,6 +133,27 @@ class LocalToDuneJob(BaseJob):
         return f"LocalToDuneJob(table_name={self.table_name}, query_string={self.query_string})"
 
 
+class YamlConf:  # pylint: disable=too-few-public-methods
+    """
+    A helper to create a nested object out of nested YAML configuration
+    """
+
+    # TODO these fields are bogus, just to satisfy mypy, should be cleaned up
+    jobs: list[Any] = []
+    name: str = ""
+    type: str = ""
+    value: Any = ""
+
+    def __init__(self, **kwargs: Any) -> None:
+        for key, value in kwargs.items():
+            if isinstance(value, dict):
+                self.__dict__[key] = YamlConf(**value)
+            elif isinstance(value, (list, tuple)):
+                self.__dict__[key] = [YamlConf(**item) for item in value]
+            else:
+                self.__dict__[key] = value
+
+
 @dataclass
 class RuntimeConfig:
     """
@@ -145,6 +170,47 @@ class RuntimeConfig:
 
     dune_to_local_jobs: list[DuneToLocalJob]
     local_to_dune_jobs: list[LocalToDuneJob]
+
+    @classmethod
+    def load_from_yaml(
+        cls, file_path: Union[Path, str] = "config.yaml"
+    ) -> RuntimeConfig:
+        with open(file_path, "rb") as _handle:
+            data = yaml.safe_load(_handle)
+        conf = YamlConf(**data)
+
+        dune_to_local_jobs = [
+            DuneToLocalJob(
+                query=QueryBase(
+                    query_id=int(job.source.query_id),
+                    params=parse_query_parameters(
+                        getattr(job.source, "parameters", [])
+                    ),
+                ),
+                poll_frequency=job.source.poll_frequency,
+                query_engine=job.source.query_engine,
+                if_exists=job.destination.if_exists,
+                table_name=job.destination.table_name,
+                source=job.source.ref,
+                destination=job.destination.ref,
+            )
+            for job in conf.jobs
+            if job.source.ref == DataSource.DUNE.value
+            and job.destination.ref == DataSource.POSTGRES.value
+        ]
+
+        local_to_dune_jobs = [
+            LocalToDuneJob(
+                query_string=job.source.query_string,
+                table_name=job.destination.table_name,
+                source=job.source.ref,
+                destination=job.destination.ref,
+            )
+            for job in conf.jobs
+            if job.source.ref == DataSource.POSTGRES.value
+            and job.destination.ref == DataSource.DUNE.value
+        ]
+        return cls(dune_to_local_jobs, local_to_dune_jobs)
 
     @classmethod
     def load_from_toml(cls, file_path: str = "config.toml") -> RuntimeConfig:

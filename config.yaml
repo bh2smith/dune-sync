@@ -1,0 +1,30 @@
+jobs:
+  - name: Download simple test query to local postgres
+    source:
+      ref: dune
+      query_id: "4238114"
+      query_engine: "medium"
+      poll_frequency: 5
+      parameters:
+        - name: "blockchain"
+          value: "gnosis"
+          type: "ENUM"
+        - name: "block_time"
+          value: "2024-09-01 00:00:00"
+          type: "DATE"
+        - name: "result_limit"
+          value: "10"
+          type: "NUMBER"
+    destination:
+      ref: postgres
+      table_name: "parameterized_results_4238114"
+      if_exists: "replace"
+
+  - name: Some other job
+    source:
+      ref: postgres
+      table_name: foo_table
+      if_exists: "append"
+    destination:
+      ref: dune
+      table_name: "dune.username.table_name"
