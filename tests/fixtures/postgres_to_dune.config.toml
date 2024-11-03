@@ -1,0 +1,5 @@
+[[jobs]]
+source = "postgres"
+destination = "dune"
+table_name = "dune_test_table"
+query_string = "SELECT * FROM test_table"
