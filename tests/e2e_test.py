@@ -6,7 +6,7 @@ from os import getenv
 from unittest.mock import patch
 
 import pandas.testing
-from dune_client.models import ResultsResponse
+from dune_client.models import ResultsResponse, DuneError
 from pandas import DataFrame
 from sqlalchemy import BIGINT, BOOLEAN, VARCHAR, DATE, TIMESTAMP
 from sqlalchemy import create_engine
@@ -148,3 +148,40 @@ class TestEndToEnd(unittest.TestCase):
         res = postgres_to_dune(env, job)
 
         self.assertTrue(res)
+
+    @patch(
+        "src.local_to_dune.postgres.pd.read_sql_query",
+        return_value=SAMPLE_CSV_FOR_PANDAS_MOCK,
+    )
+    @patch(
+        "src.local_to_dune.postgres.DuneClient.upload_csv",
+        name="mock_upload",
+        side_effect=DuneError(
+            data={"what": "what"}, err=KeyError("bad stuff"), response_class="Foo"
+        ),
+    )
+    @patch("src.config.load_dotenv")
+    @patch.dict(os.environ, {"DUNE_API_KEY": "test_key", "DB_URL": DB_URL})
+    def test_local_postgres_to_dune_errors(self, mock_env, mock_upload, mock_read_sql):
+        # set up test resources
+        env = Env.load()
+
+        conf = RuntimeConfig.load_from_toml(
+            fixtures_root / "postgres_to_dune.config.toml"
+        )
+        job = conf.local_to_dune_jobs[0]
+
+        with self.assertLogs(level="ERROR") as logs:
+            res = postgres_to_dune(env, job)
+
+        self.assertIn("Dune did not accept our upload:", "".join(logs.output))
+        self.assertFalse(res)
+
+        mock_upload.reset_mock()
+        mock_upload.side_effect = ZeroDivisionError("oops.")
+
+        with self.assertLogs(level="ERROR") as logs:
+            res = postgres_to_dune(env, job)
+
+        self.assertFalse(res)
+        self.assertIn("Unexpected error: oops.", "".join(logs.output))
