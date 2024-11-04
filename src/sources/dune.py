@@ -10,7 +10,7 @@ from sqlalchemy import BIGINT, BOOLEAN, VARCHAR, DATE, TIMESTAMP
 from sqlalchemy.dialects.postgresql import BYTEA, DOUBLE_PRECISION
 
 from src.interfaces import Source
-from src.sync_types import TypedDataFrame, DuneQueryEngineType
+from src.sync_types import TypedDataFrame, DuneQueryEngine
 
 DUNE_TO_PG: dict[str, Type[Any]] = {
     "bigint": BIGINT,
@@ -65,7 +65,7 @@ class DuneSource(Source[TypedDataFrame], ABC):
         api_key: str,
         query: QueryBase,
         poll_frequency: int = 1,
-        query_engine: DuneQueryEngineType = "medium",
+        query_engine: DuneQueryEngine = "medium",
     ) -> None:
         self.query = query
         self.poll_frequency = poll_frequency

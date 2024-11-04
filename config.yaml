@@ -17,15 +17,15 @@ jobs:
           type: "NUMBER"
     destination:
       ref: postgres
-      table_name: "parameterized_results_4238114"
+      table_name: "results_4238114"
       if_exists: "replace"
 
-  - name: Some other job
+  - name: Write Results of Job 1 back
     source:
       ref: postgres
       table_name: foo_table
       if_exists: "append"
-      query_string: "SELECT * FROM results_4194034;"
+      query_string: "SELECT * FROM results_4238114;"
     destination:
       ref: dune
       table_name: "dune.username.table_name"

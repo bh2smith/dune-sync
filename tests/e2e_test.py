@@ -6,14 +6,13 @@ from os import getenv
 from unittest.mock import patch, MagicMock
 
 import pandas.testing
-from dune_client.models import ResultsResponse, DuneError
+from dune_client.models import ResultsResponse
 from pandas import DataFrame
 from sqlalchemy import BIGINT, BOOLEAN, VARCHAR, DATE, TIMESTAMP
 from sqlalchemy.dialects.postgresql import BYTEA
 
 from src.config import Env, RuntimeConfig
 from src.destinations.postgres import PostgresDestination
-from src.jobs import JobResolver
 from src.sources.dune import dune_result_to_df
 from tests import fixtures_root
 from tests.db_util import query_pg
@@ -143,7 +142,7 @@ class TestEndToEnd(unittest.TestCase):
         conf = RuntimeConfig.load_from_yaml(
             fixtures_root / "dune_to_postgres.config.yaml"
         )
-        JobResolver(env, conf["jobs"][0]).get_job().run()
+        conf.jobs[0].run()
 
         mock_dune_client.reset_mock()
 
@@ -153,4 +152,4 @@ class TestEndToEnd(unittest.TestCase):
             fixtures_root / "dune_to_postgres.config.yaml"
         )
         with self.assertRaises(ValueError):
-            JobResolver(env, conf["jobs"][0]).get_job().run()
+            conf.jobs[0].run()

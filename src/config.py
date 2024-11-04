@@ -13,7 +13,7 @@ from dune_client.query import QueryBase
 from src.destinations.dune import DuneDestination
 from src.destinations.postgres import PostgresDestination
 from src.interfaces import Destination, Source
-from src.jobs import BaseJob, DataSource
+from src.jobs import BaseJob, Database
 from src.sources.dune import DuneSource
 from src.sources.postgres import PostgresSource
 
@@ -99,35 +99,39 @@ class RuntimeConfig:
 
     @staticmethod
     def _build_source(env: Env, source_config: dict[str, Any]) -> Source[Any]:
-        if source_config["ref"] == DataSource.DUNE.value:
-            return DuneSource(
-                api_key=env.dune_api_key,
-                query=QueryBase(
-                    query_id=int(source_config["query_id"]),
-                    params=parse_query_parameters(source_config.get("parameters", [])),
-                ),
-                poll_frequency=source_config["poll_frequency"],
-                query_engine=source_config["query_engine"],
-            )
+        match Database.from_string(source_config["ref"]):
+            case Database.DUNE:
+                return DuneSource(
+                    api_key=env.dune_api_key,
+                    query=QueryBase(
+                        query_id=int(source_config["query_id"]),
+                        params=parse_query_parameters(
+                            source_config.get("parameters", [])
+                        ),
+                    ),
+                    poll_frequency=source_config["poll_frequency"],
+                    query_engine=source_config["query_engine"],
+                )
 
-        if source_config["ref"] == DataSource.POSTGRES.value:
-            return PostgresSource(
-                db_url=env.db_url, query_string=source_config["query_string"]
-            )
+            case Database.POSTGRES:
+                return PostgresSource(
+                    db_url=env.db_url, query_string=source_config["query_string"]
+                )
         raise ValueError(f"Unknown source type: {source_config['ref']}")
 
     @staticmethod
     def _build_destination(env: Env, dest_config: dict[str, Any]) -> Destination[Any]:
-        if dest_config["ref"] == DataSource.DUNE.value:
-            return DuneDestination(
-                api_key=env.dune_api_key,
-                table_name=dest_config["table_name"],
-            )
+        match Database.from_string(dest_config["ref"]):
+            case Database.DUNE:
+                return DuneDestination(
+                    api_key=env.dune_api_key,
+                    table_name=dest_config["table_name"],
+                )
 
-        if dest_config["ref"] == DataSource.POSTGRES.value:
-            return PostgresDestination(
-                db_url=env.db_url,
-                table_name=dest_config["table_name"],
-                if_exists=dest_config["if_exists"],
-            )
+            case Database.POSTGRES:
+                return PostgresDestination(
+                    db_url=env.db_url,
+                    table_name=dest_config["table_name"],
+                    if_exists=dest_config["if_exists"],
+                )
         raise ValueError(f"Unknown destination type: {dest_config['ref']}")
