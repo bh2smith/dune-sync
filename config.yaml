@@ -23,9 +23,8 @@ jobs:
   - name: Write Results of Job 1 back
     source:
       ref: postgres
-      table_name: foo_table
       if_exists: "append"
       query_string: "SELECT * FROM results_4238114;"
     destination:
       ref: dune
-      table_name: "dune.username.table_name"
+      table_name: "dune_sync_test_table"
