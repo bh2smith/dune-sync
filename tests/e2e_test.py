@@ -3,7 +3,7 @@ import datetime
 import os
 import unittest
 from os import getenv
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 import pandas.testing
 from dune_client.models import ResultsResponse, DuneError
@@ -13,6 +13,7 @@ from sqlalchemy.dialects.postgresql import BYTEA
 
 from src.config import Env, RuntimeConfig
 from src.destinations.postgres import PostgresDestination
+from src.jobs import JobResolver
 from src.sources.dune import dune_result_to_df
 from src.sync import postgres_to_dune
 from tests import fixtures_root
@@ -139,24 +140,17 @@ class TestEndToEnd(unittest.TestCase):
     @patch("src.config.load_dotenv")
     @patch.dict(os.environ, {"DUNE_API_KEY": "test_key", "DB_URL": DB_URL})
     def test_local_postgres_to_dune(self, *_):
-        # set up test resources
         env = Env.load()
 
-        conf = RuntimeConfig.load_from_toml(
-            fixtures_root / "postgres_to_dune.config.toml"
+        conf = RuntimeConfig.load_from_yaml(
+            fixtures_root / "postgres_to_dune.config.yaml"
         )
-        job = conf.local_to_dune_jobs[0]
+        job = conf["jobs"][0]
+        job = JobResolver(env, job).get_job()
 
         # this mostly tests pandas and the unittest.mock members, but we may consider making an actual test using a mock
         # Dune service as part of the test orchestration
-
-        # Assert that no exception is raised during execution
-        try:
-            postgres_to_dune(env, job)
-        except Exception as e:
-            self.fail(
-                f"postgres_to_dune raised an exception {e} when it should not have"
-            )
+        postgres_to_dune(env, job)
 
     @patch(
         "src.sources.postgres.pd.read_sql_query",
@@ -175,10 +169,10 @@ class TestEndToEnd(unittest.TestCase):
         # set up test resources
         env = Env.load()
 
-        conf = RuntimeConfig.load_from_toml(
-            fixtures_root / "postgres_to_dune.config.toml"
+        conf = RuntimeConfig.load_from_yaml(
+            fixtures_root / "postgres_to_dune.config.yaml"
         )
-        job = conf.local_to_dune_jobs[0]
+        job = JobResolver(env, conf["jobs"][0]).get_job()
 
         with self.assertLogs(level="ERROR") as logs:
             res = postgres_to_dune(env, job)
@@ -194,3 +188,31 @@ class TestEndToEnd(unittest.TestCase):
 
         self.assertFalse(res)
         self.assertIn("Unexpected error: oops.", "".join(logs.output))
+
+    @patch("src.sources.dune.DuneClient")
+    @patch("src.config.load_dotenv")
+    @patch.dict(os.environ, {"DUNE_API_KEY": "test_key", "DB_URL": DB_URL})
+    def test_dune_to_local_job_run(self, mock_env, mock_dune_client):
+        env = Env.load()
+        good_client = MagicMock(name="Mock Dune client that returns a result")
+        good_client.run_query.return_value = SAMPLE_DUNE_RESULTS
+
+        bad_client_returned_none = MagicMock(name="Mock Dune client that returns None")
+        bad_client_returned_none.run_query.return_value.result = None
+
+        # everything is okay
+        mock_dune_client.return_value = good_client
+        conf = RuntimeConfig.load_from_yaml(
+            fixtures_root / "dune_to_postgres.config.yaml"
+        )
+        JobResolver(env, conf["jobs"][0]).get_job().run()
+
+        mock_dune_client.reset_mock()
+
+        # Dune returned a None result
+        mock_dune_client.return_value = bad_client_returned_none
+        conf = RuntimeConfig.load_from_yaml(
+            fixtures_root / "dune_to_postgres.config.yaml"
+        )
+        with self.assertRaises(ValueError):
+            JobResolver(env, conf["jobs"][0]).get_job().run()

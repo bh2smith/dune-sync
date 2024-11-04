@@ -2,9 +2,8 @@ import sqlalchemy
 from sqlalchemy import create_engine
 
 from src.interfaces import Destination
-from src.config import TableExistsPolicy
+from src.sync_types import TableExistsPolicy, TypedDataFrame
 from src.logger import log
-from src.sync_types import TypedDataFrame
 
 
 class PostgresDestination(Destination[TypedDataFrame]):

@@ -2,22 +2,20 @@
 from pathlib import Path
 
 import src as root
-from src.config import Env, RuntimeConfig
-from src.sync import dune_to_postgres, postgres_to_dune
+from src.config import env, RuntimeConfig
+from src.jobs import JobResolver
+from src.logger import log
 
 
 def main() -> None:
-    env = Env.load()
     root_path = Path(root.__path__[0])
     config = RuntimeConfig.load_from_yaml(
         str((root_path.parent / "config.yaml").absolute())
     )
-
     # TODO: Async job execution https://github.com/bh2smith/dune-sync/issues/20
-    for d2l_job in config.dune_to_local_jobs:
-        dune_to_postgres(env, d2l_job)
-    for l2d_job in config.local_to_dune_jobs:
-        postgres_to_dune(env, l2d_job)
+    for job_conf in config["jobs"]:
+        JobResolver(env, job_conf).get_job().run()
+        log.info("Job completed: %s", job_conf)
 
 
 if __name__ == "__main__":

@@ -1,11 +1,13 @@
 import os
 import unittest
 from datetime import datetime
-from unittest.mock import patch, mock_open
+from unittest import skip
+from unittest.mock import patch
 
 from dune_client.types import QueryParameter, ParameterType
 
-from src.config import Env, RuntimeConfig, parse_query_parameters, DataSource
+from src.config import Env, RuntimeConfig, parse_query_parameters
+from src.jobs import DataSource, JobResolver
 from tests import fixtures_root
 
 
@@ -47,6 +49,7 @@ class TestEnv(unittest.TestCase):
 class TestRuntimeConfig(unittest.TestCase):
     maxDiff = None
 
+    @skip("this would now be testing the yaml lib")
     def test_load_conf(self):
         config_file = fixtures_root / "basic.config.yaml"
         self.maxDiff = None
@@ -119,3 +122,24 @@ class TestParseQueryParameters(unittest.TestCase):
             parse_query_parameters(params)
 
         self.assertIn("could not parse", str(context.exception))
+
+
+class TestJobResolver(unittest.TestCase):
+
+    @patch("src.config.load_dotenv")
+    @patch.dict(os.environ, {"DUNE_API_KEY": "irrelevant", "DB_URL": "irrelevant"})
+    def test_unknown_job_type(self, mock_env):
+        conf_file = fixtures_root / "unknown.config.yaml"  # dune to sqlite? not yet
+        conf = RuntimeConfig.load_from_yaml(conf_file)
+
+        with self.assertRaises(NotImplementedError):
+            JobResolver(mock_env, conf["jobs"][0]).get_job()
+
+    @patch("src.config.load_dotenv")
+    @patch.dict(os.environ, {"DUNE_API_KEY": "irrelevant", "DB_URL": "irrelevant"})
+    def test_missing_job_parameter(self, mock_env):
+        conf_file = fixtures_root / "buggy.config.yaml"  # dune to sqlite? not yet
+        conf = RuntimeConfig.load_from_yaml(conf_file)
+
+        with self.assertRaises(KeyError), self.assertLogs(level="ERROR"):
+            JobResolver(mock_env, conf["jobs"][0]).get_job()

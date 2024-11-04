@@ -1,16 +1,17 @@
 # pragma: no cover
 from typing import Any
-from src.config import DuneToLocalJob, Env, LocalToDuneJob
+
+from src.config import Env
 from src.destinations.dune import DuneDestination
 from src.destinations.postgres import PostgresDestination
 from src.interfaces import Destination, Source
+from src.jobs import DuneToLocalJob, LocalToDuneJob
 from src.logger import log
 from src.sources.dune import DuneSource
 from src.sources.postgres import PostgresSource
 
 
 def dune_to_postgres(env: Env, job: DuneToLocalJob) -> None:
-
     sync(
         source=DuneSource(env.dune_api_key, job),
         destination=PostgresDestination(env.db_url, job.table_name, job.if_exists),

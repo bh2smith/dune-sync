@@ -1,4 +1,3 @@
-from typing import Any
 import pandas as pd
 from sqlalchemy import create_engine, text
 from pandas import DataFrame
@@ -6,11 +5,13 @@ import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
 
 from src.interfaces import Source
-from src.config import LocalToDuneJob
 from src.logger import log
 
 
 def _convert_bytea_to_hex(df: DataFrame) -> DataFrame:
+    if df.empty:
+        return df
+
     for column in df.columns:
         if isinstance(df[column].iloc[0], memoryview):
             df[column] = df[column].apply(lambda x: f"0x{x.tobytes().hex()}")
@@ -18,7 +19,7 @@ def _convert_bytea_to_hex(df: DataFrame) -> DataFrame:
 
 
 class PostgresSource(Source[DataFrame]):
-    def __init__(self, db_url: str, job: LocalToDuneJob):
+    def __init__(self, db_url: str, job: "LocalToDuneJob"):
         self.job = job
         self.engine: sqlalchemy.engine.Engine = create_engine(db_url)
 
