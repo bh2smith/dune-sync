@@ -88,6 +88,3 @@ class RuntimeConfig:
         #     log.warning("Detected multiple jobs running the same query")
         # if num_jobs != len(set(j.table_name for j in self.dune_to_local_jobs)):
         #     log.warning("Detected duplicate table names in job list")
-
-
-env = Env.load()

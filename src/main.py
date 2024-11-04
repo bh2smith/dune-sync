@@ -2,9 +2,11 @@
 from pathlib import Path
 
 import src as root
-from src.config import env, RuntimeConfig
+from src.config import Env, RuntimeConfig
 from src.jobs import JobResolver
 from src.logger import log
+
+env = Env.load()
 
 
 def main() -> None:
