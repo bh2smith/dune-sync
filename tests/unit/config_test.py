@@ -47,7 +47,7 @@ class TestEnv(unittest.TestCase):
 class TestRuntimeConfig(unittest.TestCase):
     maxDiff = None
 
-    @patch.dict(os.environ, {"DUNE_API_KEY": "test_key", "DB_URL": "test_db_url"}, clear=True)
+    @patch.dict(os.environ, {"DUNE_API_KEY": "test_key", "DB_URL": "postgresql://postgres:postgres@localhost:5432/postgres"}, clear=True)
     def test_load_conf(self):
         config_file = fixtures_root / "basic.config.yaml"
         self.maxDiff = None
