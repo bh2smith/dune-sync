@@ -6,7 +6,7 @@ from unittest.mock import patch, mock_open
 
 from dune_client.types import QueryParameter, ParameterType
 
-from src.config import Env, RuntimeConfig, parse_query_parameters, DataSource, YamlConf
+from src.config import Env, RuntimeConfig, parse_query_parameters, DataSource
 from tests import fixtures_root
 
 
