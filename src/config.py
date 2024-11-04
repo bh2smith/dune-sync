@@ -3,17 +3,17 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Union
+from typing import Any
 
 import yaml
 from dotenv import load_dotenv
-from dune_client.types import ParameterType, QueryParameter
 from dune_client.query import QueryBase
+from dune_client.types import ParameterType, QueryParameter
 
 from src.destinations.dune import DuneDestination
 from src.destinations.postgres import PostgresDestination
 from src.interfaces import Destination, Source
-from src.jobs import BaseJob, Database
+from src.job import Job, Database
 from src.sources.dune import DuneSource
 from src.sources.postgres import PostgresSource
 
@@ -78,12 +78,10 @@ def parse_query_parameters(params: list[dict[str, Any]]) -> list[QueryParameter]
 class RuntimeConfig:
     """A class to represent the runtime configuration settings."""
 
-    jobs: list[BaseJob]
+    jobs: list[Job]
 
     @classmethod
-    def load_from_yaml(
-        cls, file_path: Union[Path, str] = "config.yaml"
-    ) -> RuntimeConfig:
+    def load_from_yaml(cls, file_path: Path | str = "config.yaml") -> RuntimeConfig:
         with open(file_path, "rb") as _handle:
             data = yaml.safe_load(_handle)
 
@@ -93,7 +91,7 @@ class RuntimeConfig:
         for job_config in data.get("jobs", []):
             source = cls._build_source(env, job_config["source"])
             destination = cls._build_destination(env, job_config["destination"])
-            jobs.append(BaseJob(source, destination))
+            jobs.append(Job(source, destination))
 
         return cls(jobs=jobs)
 

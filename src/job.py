@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
@@ -22,7 +23,7 @@ class Database(Enum):
 
 
 @dataclass
-class BaseJob:
+class Job:
     """Base class for all jobs with common attributes"""
 
     source: Source[Any]

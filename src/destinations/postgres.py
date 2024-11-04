@@ -1,9 +1,12 @@
+from typing import Literal
+
 import sqlalchemy
 from sqlalchemy import create_engine
 
-from src.interfaces import Destination
-from src.sync_types import TableExistsPolicy, TypedDataFrame
+from src.interfaces import Destination, TypedDataFrame
 from src.logger import log
+
+TableExistsPolicy = Literal["append", "replace"]
 
 
 class PostgresDestination(Destination[TypedDataFrame]):

@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Type, Any
+from typing import Type, Any, Literal
 
 import pandas as pd
 from dune_client.client import DuneClient
@@ -9,8 +9,7 @@ from pandas import DataFrame
 from sqlalchemy import BIGINT, BOOLEAN, VARCHAR, DATE, TIMESTAMP
 from sqlalchemy.dialects.postgresql import BYTEA, DOUBLE_PRECISION
 
-from src.interfaces import Source
-from src.sync_types import TypedDataFrame, DuneQueryEngine
+from src.interfaces import Source, TypedDataFrame
 
 DUNE_TO_PG: dict[str, Type[Any]] = {
     "bigint": BIGINT,
@@ -65,7 +64,7 @@ class DuneSource(Source[TypedDataFrame], ABC):
         api_key: str,
         query: QueryBase,
         poll_frequency: int = 1,
-        query_engine: DuneQueryEngine = "medium",
+        query_engine: Literal["medium", "large"] = "medium",
     ) -> None:
         self.query = query
         self.poll_frequency = poll_frequency
