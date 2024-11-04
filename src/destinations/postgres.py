@@ -1,12 +1,10 @@
-from typing import Any
 import sqlalchemy
-from pandas import DataFrame
 from sqlalchemy import create_engine
 
 from src.interfaces import Destination
 from src.config import TableExistsPolicy
 from src.logger import log
-from src.types import TypedDataFrame
+from src.sync_types import TypedDataFrame
 
 
 class PostgresDestination(Destination[TypedDataFrame]):

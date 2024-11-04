@@ -6,7 +6,6 @@ from enum import Enum
 from pathlib import Path
 from typing import Literal, Any, Union
 
-import tomli
 import yaml
 from dotenv import load_dotenv
 from dune_client.query import QueryBase
@@ -185,75 +184,6 @@ class RuntimeConfig:
             and job["destination"]["ref"] == DataSource.DUNE.value
         ]
         return cls(dune_to_local_jobs, local_to_dune_jobs)
-
-    @classmethod
-    def load_from_toml(cls, file_path: str = "config.toml") -> RuntimeConfig:
-        """
-        Reads the configuration from a TOML file and returns a RuntimeConfig object.
-
-        Parameters
-        ----------
-        file_path : str
-            The path to the TOML configuration file.
-
-        Returns
-        -------
-        RuntimeConfig
-            An instance of RuntimeConfig populated with the data from the TOML file.
-        """
-        # Load the configuration from the TOML file
-        with open(file_path, "rb") as f:
-            toml_dict = tomli.load(f)
-
-        # Parse each job configuration
-        dune_to_local_jobs, local_to_dune_jobs = [], []
-        for job in toml_dict.get("jobs", []):
-            # Parse source and destination from config
-            source = DataSource(job["source"].lower())
-            destination = DataSource(job["destination"].lower())
-
-            # Common job parameters
-            table_name = job["table_name"]
-
-            if source == DataSource.DUNE and destination == DataSource.POSTGRES:
-                if "query_engine" in job and job["query_engine"] not in [
-                    "medium",
-                    "large",
-                ]:
-                    raise ValueError("query_engine must be either 'medium' or 'large'.")
-                dune_to_local_jobs.append(
-                    DuneToLocalJob(
-                        source=source,
-                        destination=destination,
-                        table_name=table_name,
-                        query=QueryBase(
-                            query_id=job["query_id"],
-                            params=parse_query_parameters(
-                                job.get("query_parameters", [])
-                            ),
-                        ),
-                        poll_frequency=job.get("poll_frequency", 1),
-                        query_engine=job.get("query_engine", "medium"),
-                        if_exists=job.get("if_exists", "append"),
-                    )
-                )
-            elif source == DataSource.POSTGRES and destination == DataSource.DUNE:
-                local_to_dune_jobs.append(
-                    LocalToDuneJob(
-                        source=source,
-                        destination=destination,
-                        table_name=table_name,
-                        query_string=job["query_string"],
-                    )
-                )
-            else:
-                raise ValueError(
-                    f"Invalid source/destination combination: {source} -> {destination}"
-                )
-
-        config = cls(dune_to_local_jobs, local_to_dune_jobs)
-        config.validate()
-        return config
 
     def validate(self) -> None:
         num_jobs = len(self.dune_to_local_jobs)

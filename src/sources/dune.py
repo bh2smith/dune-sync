@@ -10,7 +10,7 @@ from sqlalchemy.dialects.postgresql import BYTEA, DOUBLE_PRECISION
 
 from src.config import DuneToLocalJob
 from src.interfaces import Source
-from src.types import TypedDataFrame
+from src.sync_types import TypedDataFrame
 
 DUNE_TO_PG: dict[str, Type[Any]] = {
     "bigint": BIGINT,
