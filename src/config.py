@@ -8,6 +8,14 @@ from typing import Any, Union
 import yaml
 from dotenv import load_dotenv
 from dune_client.types import ParameterType, QueryParameter
+from dune_client.query import QueryBase
+
+from src.destinations.dune import DuneDestination
+from src.destinations.postgres import PostgresDestination
+from src.interfaces import Destination, Source
+from src.jobs import BaseJob, Database
+from src.sources.dune import DuneSource
+from src.sources.postgres import PostgresSource
 
 
 @dataclass
@@ -68,23 +76,62 @@ def parse_query_parameters(params: list[dict[str, Any]]) -> list[QueryParameter]
 
 @dataclass
 class RuntimeConfig:
-    """
-    A class to represent the runtime configuration settings.
+    """A class to represent the runtime configuration settings."""
 
-    """
+    jobs: list[BaseJob]
 
     @classmethod
-    def load_from_yaml(cls, file_path: Union[Path, str] = "config.yaml") -> Any:
+    def load_from_yaml(
+        cls, file_path: Union[Path, str] = "config.yaml"
+    ) -> RuntimeConfig:
         with open(file_path, "rb") as _handle:
             data = yaml.safe_load(_handle)
 
-        return data
+        env = Env.load()
+        jobs = []
 
-    def validate(self) -> None:
-        return
-        # TODO this needs to be refactored to work with the new Job class
-        # num_jobs = len(self.dune_to_local_jobs)
-        # if num_jobs != len(set(j.query.query_id for j in self.dune_to_local_jobs)):
-        #     log.warning("Detected multiple jobs running the same query")
-        # if num_jobs != len(set(j.table_name for j in self.dune_to_local_jobs)):
-        #     log.warning("Detected duplicate table names in job list")
+        for job_config in data.get("jobs", []):
+            source = cls._build_source(env, job_config["source"])
+            destination = cls._build_destination(env, job_config["destination"])
+            jobs.append(BaseJob(source, destination))
+
+        return cls(jobs=jobs)
+
+    @staticmethod
+    def _build_source(env: Env, source_config: dict[str, Any]) -> Source[Any]:
+        match Database.from_string(source_config["ref"]):
+            case Database.DUNE:
+                return DuneSource(
+                    api_key=env.dune_api_key,
+                    query=QueryBase(
+                        query_id=int(source_config["query_id"]),
+                        params=parse_query_parameters(
+                            source_config.get("parameters", [])
+                        ),
+                    ),
+                    poll_frequency=source_config["poll_frequency"],
+                    query_engine=source_config["query_engine"],
+                )
+
+            case Database.POSTGRES:
+                return PostgresSource(
+                    db_url=env.db_url, query_string=source_config["query_string"]
+                )
+        raise ValueError(f"Unknown source type: {source_config['ref']}")
+
+    @staticmethod
+    def _build_destination(env: Env, dest_config: dict[str, Any]) -> Destination[Any]:
+        match Database.from_string(dest_config["ref"]):
+            case Database.DUNE:
+                return DuneDestination(
+                    api_key=env.dune_api_key,
+                    table_name=dest_config["table_name"],
+                )
+
+            case Database.POSTGRES:
+                return PostgresDestination(
+                    db_url=env.db_url,
+                    table_name=dest_config["table_name"],
+                    if_exists=dest_config["if_exists"],
+                )
+        raise ValueError(f"Unknown destination type: {dest_config['ref']}")
