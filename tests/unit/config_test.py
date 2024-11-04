@@ -1,11 +1,12 @@
 import os
 import unittest
 from datetime import datetime
-from unittest.mock import patch, mock_open
+from unittest.mock import patch
 
 from dune_client.types import QueryParameter
 
 from src.config import Env, RuntimeConfig, parse_query_parameters
+from tests import fixtures_root
 
 
 class TestEnv(unittest.TestCase):
@@ -44,106 +45,22 @@ class TestEnv(unittest.TestCase):
 
 
 class TestRuntimeConfig(unittest.TestCase):
-    @patch(
-        "builtins.open",
-        new_callable=mock_open,
-        read_data=b"""
-        [[jobs]]
-        source = "dune"
-        destination = "postgres"
-        query_id = 123
-        table_name = "test_table"
-        poll_frequency = 5
-        query_engine = "medium"
-    """,
-    )
-    def test_load_from_toml_success(self, mock_file):
-        config = RuntimeConfig.load_from_toml("config.toml")
-        self.assertEqual(len(config.dune_to_local_jobs), 1)
-        job = config.dune_to_local_jobs[0]
-        self.assertEqual(job.query.query_id, 123)
-        self.assertEqual(job.table_name, "test_table")
-        self.assertEqual(job.poll_frequency, 5)
-        self.assertEqual(job.query_engine, "medium")
+    maxDiff = None
 
-    @patch(
-        "builtins.open",
-        new_callable=mock_open,
-        read_data=b"""
-        [[jobs]]
-        source = "dune"
-        destination = "postgres"
-        query_id = 123
-        table_name = "test_table"
-        poll_frequency = 5
-        query_engine = "invalid"
-    """,
+    @patch.dict(
+        os.environ,
+        {
+            "DUNE_API_KEY": "test_key",
+            "DB_URL": "postgresql://postgres:postgres@localhost:5432/postgres",
+        },
+        clear=True,
     )
-    def test_load_from_toml_invalid_query_engine(self, mock_file):
-        with self.assertRaises(ValueError) as context:
-            RuntimeConfig.load_from_toml("config.toml")
-        self.assertEqual(
-            str(context.exception), "query_engine must be either 'medium' or 'large'."
-        )
-
-    @patch(
-        "builtins.open",
-        new_callable=mock_open,
-        read_data=b"""
-        [[jobs]]
-        source = "postgres"
-        destination = "postgres"
-        query_id = 123
-        table_name = "test_table"
-        poll_frequency = 5
-        query_engine = "invalid"
-    """,
-    )
-    def test_load_from_toml_invalid_source_dest_combo(self, mock_file):
-        with self.assertRaises(ValueError) as context:
-            RuntimeConfig.load_from_toml("config.toml")
-        self.assertEqual(
-            str(context.exception),
-            "Invalid source/destination combination: DataSource.POSTGRES -> DataSource.POSTGRES",
-        )
-
-    @patch(
-        "builtins.open",
-        new_callable=mock_open,
-        read_data=b"""
-        [[jobs]]
-        source = "dune"
-        destination = "postgres"
-        table_name = "test_table"
-        query_id = 123
-    """,
-    )
-    def test_load_from_toml_missing_values(self, mock_file):
-        config = RuntimeConfig.load_from_toml("config.toml")
-        self.assertEqual(len(config.dune_to_local_jobs), 1)
-        job = config.dune_to_local_jobs[0]
-        self.assertEqual(job.query.query_id, 123)
-        self.assertEqual(job.table_name, "test_table")  # Default table name
-        self.assertEqual(job.poll_frequency, 1)  # Default poll frequency
-        self.assertEqual(job.query_engine, "medium")  # Default query engine
-
-    @patch(
-        "builtins.open",
-        new_callable=mock_open,
-        read_data=b"""
-
-        [[jobs]]
-        source = "postgres"
-        destination = "dune"
-        table_name = "test_table"
-        query_string = "SELECT * FROM test_table"
-    """,
-    )
-    def test_load_from_toml_for_local_to_dune(self, mock_file):
-        config = RuntimeConfig.load_from_toml("config.toml")
-        self.assertEqual(len(config.dune_to_local_jobs), 0)
-        self.assertEqual(len(config.local_to_dune_jobs), 1)
-        # job = config.local_to_dune_jobs[0]
+    def test_load_conf(self):
+        config_file = fixtures_root / "basic.config.yaml"
+        self.maxDiff = None
+        conf = RuntimeConfig.load_from_yaml(config_file.absolute())
+        self.assertEqual(len(conf.jobs), 2)
+        # TODO: come up with more explicit assertions.
 
 
 class TestParseQueryParameters(unittest.TestCase):

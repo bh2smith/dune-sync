@@ -4,13 +4,13 @@ from typing import Type, Any
 import pandas as pd
 from dune_client.client import DuneClient
 from dune_client.models import ExecutionResult
+from dune_client.query import QueryBase
 from pandas import DataFrame
 from sqlalchemy import BIGINT, BOOLEAN, VARCHAR, DATE, TIMESTAMP
 from sqlalchemy.dialects.postgresql import BYTEA, DOUBLE_PRECISION
 
-from src.config import DuneToLocalJob
 from src.interfaces import Source
-from src.types import TypedDataFrame
+from src.sync_types import TypedDataFrame, DuneQueryEngine
 
 DUNE_TO_PG: dict[str, Type[Any]] = {
     "bigint": BIGINT,
@@ -49,9 +49,27 @@ def dune_result_to_df(result: ExecutionResult) -> TypedDataFrame:
 
 
 class DuneSource(Source[TypedDataFrame], ABC):
-    def __init__(self, api_key: str, job: DuneToLocalJob):
-        self.job = job
-        self.client = DuneClient(api_key, performance=job.query_engine)
+    """
+    A class representing Dune as a data source.
+
+    Attributes
+    ----------
+    api_key : str
+        The API key used for accessing the Dune Analytics API.
+    query : QueryBase
+        The query to execute.
+    """
+
+    def __init__(
+        self,
+        api_key: str,
+        query: QueryBase,
+        poll_frequency: int = 1,
+        query_engine: DuneQueryEngine = "medium",
+    ) -> None:
+        self.query = query
+        self.poll_frequency = poll_frequency
+        self.client = DuneClient(api_key, performance=query_engine)
 
     def validate(self) -> bool:
         # Nothing I can think of to validate here...
@@ -59,8 +77,8 @@ class DuneSource(Source[TypedDataFrame], ABC):
 
     def fetch(self) -> TypedDataFrame:
         response = self.client.run_query(
-            query=self.job.query,
-            ping_frequency=self.job.poll_frequency,
+            query=self.query,
+            ping_frequency=self.poll_frequency,
         )
         if response.result is None:
             raise ValueError("Query execution failed!")

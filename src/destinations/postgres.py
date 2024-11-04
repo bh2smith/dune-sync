@@ -1,15 +1,23 @@
-from typing import Any
 import sqlalchemy
-from pandas import DataFrame
 from sqlalchemy import create_engine
 
 from src.interfaces import Destination
-from src.config import TableExistsPolicy
+from src.sync_types import TableExistsPolicy, TypedDataFrame
 from src.logger import log
-from src.types import TypedDataFrame
 
 
 class PostgresDestination(Destination[TypedDataFrame]):
+    """
+    A class representing Postgres as a destination.
+
+    Attributes
+    ----------
+    db_url : str
+        The URL of the database connection.
+    table_name : str
+        The name of the table where the data will be saved.
+    """
+
     def __init__(
         self, db_url: str, table_name: str, if_exists: TableExistsPolicy = "append"
     ):

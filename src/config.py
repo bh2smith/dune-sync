@@ -1,18 +1,21 @@
 from __future__ import annotations
 
-from enum import Enum
 import os
 from dataclasses import dataclass
-from typing import Literal, Any
+from pathlib import Path
+from typing import Any, Union
 
-import tomli
+import yaml
 from dotenv import load_dotenv
-from dune_client.query import QueryBase
 from dune_client.types import ParameterType, QueryParameter
+from dune_client.query import QueryBase
 
-from src.logger import log
-
-TableExistsPolicy = Literal["append", "replace"]
+from src.destinations.dune import DuneDestination
+from src.destinations.postgres import PostgresDestination
+from src.interfaces import Destination, Source
+from src.jobs import BaseJob, Database
+from src.sources.dune import DuneSource
+from src.sources.postgres import PostgresSource
 
 
 @dataclass
@@ -49,13 +52,6 @@ class Env:
         return cls(db_url, dune_api_key)
 
 
-class DataSource(Enum):
-    """Enum for possible data sources/destinations"""
-
-    POSTGRES = "postgres"
-    DUNE = "dune"
-
-
 def parse_query_parameters(params: list[dict[str, Any]]) -> list[QueryParameter]:
     query_params = []
     for param in params:
@@ -79,145 +75,63 @@ def parse_query_parameters(params: list[dict[str, Any]]) -> list[QueryParameter]
 
 
 @dataclass
-class BaseJob:
-    """Base class for all jobs with common attributes"""
-
-    table_name: str
-    source: DataSource
-    destination: DataSource
-
-    def validate_source_destination(self) -> None:
-        if self.source == self.destination:
-            raise ValueError("Source and destination cannot be the same")
-
-    def __post_init__(self) -> None:
-        self.validate_source_destination()
-
-
-@dataclass
-class DuneToLocalJob(BaseJob):
-    """
-    A class to represent a single job configuration.
-
-    Attributes
-    ----------
-    query : QueryBase
-        The, possibly parameterized, query to execute.
-    table_name : str
-        The name of the table where the query results will be stored.
-    poll_frequency : int
-        The frequency (in seconds) at which the query should be polled.
-    query_engine : Literal["medium", "large"]
-        The query engine to use, either "medium" or "large" (default is "medium").
-    """
-
-    query: QueryBase
-    poll_frequency: int
-    query_engine: Literal["medium", "large"] = "medium"  # Default value is "medium"
-    if_exists: TableExistsPolicy = "append"
-
-
-@dataclass
-class LocalToDuneJob(BaseJob):
-    """
-    A class to represent a single job configuration.
-    """
-
-    query_string: str
-
-    def __str__(self) -> str:
-        return f"LocalToDuneJob(table_name={self.table_name}, query_string={self.query_string})"
-
-
-@dataclass
 class RuntimeConfig:
-    """
-    A class to represent the runtime configuration settings.
+    """A class to represent the runtime configuration settings."""
 
-    Attributes
-    ----------
-    dune_to_local_jobs : List[JobConfig]
-        A list of JobConfig instances, each representing a separate job configuration.
-
-    local_to_dune_jobs : List[JobConfig]
-        A list of JobConfig instances, each representing a separate job configuration.
-    """
-
-    dune_to_local_jobs: list[DuneToLocalJob]
-    local_to_dune_jobs: list[LocalToDuneJob]
+    jobs: list[BaseJob]
 
     @classmethod
-    def load_from_toml(cls, file_path: str = "config.toml") -> RuntimeConfig:
-        """
-        Reads the configuration from a TOML file and returns a RuntimeConfig object.
+    def load_from_yaml(
+        cls, file_path: Union[Path, str] = "config.yaml"
+    ) -> RuntimeConfig:
+        with open(file_path, "rb") as _handle:
+            data = yaml.safe_load(_handle)
 
-        Parameters
-        ----------
-        file_path : str
-            The path to the TOML configuration file.
+        env = Env.load()
+        jobs = []
 
-        Returns
-        -------
-        RuntimeConfig
-            An instance of RuntimeConfig populated with the data from the TOML file.
-        """
-        # Load the configuration from the TOML file
-        with open(file_path, "rb") as f:
-            toml_dict = tomli.load(f)
+        for job_config in data.get("jobs", []):
+            source = cls._build_source(env, job_config["source"])
+            destination = cls._build_destination(env, job_config["destination"])
+            jobs.append(BaseJob(source, destination))
 
-        # Parse each job configuration
-        dune_to_local_jobs, local_to_dune_jobs = [], []
-        for job in toml_dict.get("jobs", []):
-            # Parse source and destination from config
-            source = DataSource(job["source"].lower())
-            destination = DataSource(job["destination"].lower())
+        return cls(jobs=jobs)
 
-            # Common job parameters
-            table_name = job["table_name"]
-
-            if source == DataSource.DUNE and destination == DataSource.POSTGRES:
-                if "query_engine" in job and job["query_engine"] not in [
-                    "medium",
-                    "large",
-                ]:
-                    raise ValueError("query_engine must be either 'medium' or 'large'.")
-                dune_to_local_jobs.append(
-                    DuneToLocalJob(
-                        source=source,
-                        destination=destination,
-                        table_name=table_name,
-                        query=QueryBase(
-                            query_id=job["query_id"],
-                            params=parse_query_parameters(
-                                job.get("query_parameters", [])
-                            ),
+    @staticmethod
+    def _build_source(env: Env, source_config: dict[str, Any]) -> Source[Any]:
+        match Database.from_string(source_config["ref"]):
+            case Database.DUNE:
+                return DuneSource(
+                    api_key=env.dune_api_key,
+                    query=QueryBase(
+                        query_id=int(source_config["query_id"]),
+                        params=parse_query_parameters(
+                            source_config.get("parameters", [])
                         ),
-                        poll_frequency=job.get("poll_frequency", 1),
-                        query_engine=job.get("query_engine", "medium"),
-                        if_exists=job.get("if_exists", "append"),
-                    )
-                )
-            elif source == DataSource.POSTGRES and destination == DataSource.DUNE:
-                local_to_dune_jobs.append(
-                    LocalToDuneJob(
-                        source=source,
-                        destination=destination,
-                        table_name=table_name,
-                        query_string=job["query_string"],
-                    )
-                )
-            else:
-                raise ValueError(
-                    f"Invalid source/destination combination: {source} -> {destination}"
+                    ),
+                    poll_frequency=source_config["poll_frequency"],
+                    query_engine=source_config["query_engine"],
                 )
 
-        config = cls(dune_to_local_jobs, local_to_dune_jobs)
-        config.validate()
-        return config
+            case Database.POSTGRES:
+                return PostgresSource(
+                    db_url=env.db_url, query_string=source_config["query_string"]
+                )
+        raise ValueError(f"Unknown source type: {source_config['ref']}")
 
-    def validate(self) -> None:
-        num_jobs = len(self.dune_to_local_jobs)
-        if num_jobs != len(set(j.query.query_id for j in self.dune_to_local_jobs)):
-            log.warning("Detected multiple jobs running the same query")
-        if num_jobs != len(set(j.table_name for j in self.dune_to_local_jobs)):
-            log.warning("Detected duplicate table names in job list")
+    @staticmethod
+    def _build_destination(env: Env, dest_config: dict[str, Any]) -> Destination[Any]:
+        match Database.from_string(dest_config["ref"]):
+            case Database.DUNE:
+                return DuneDestination(
+                    api_key=env.dune_api_key,
+                    table_name=dest_config["table_name"],
+                )
+
+            case Database.POSTGRES:
+                return PostgresDestination(
+                    db_url=env.db_url,
+                    table_name=dest_config["table_name"],
+                    if_exists=dest_config["if_exists"],
+                )
+        raise ValueError(f"Unknown destination type: {dest_config['ref']}")
