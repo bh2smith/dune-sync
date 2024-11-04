@@ -9,6 +9,7 @@ from sqlalchemy import BIGINT, BOOLEAN, VARCHAR, DATE, TIMESTAMP
 from sqlalchemy.dialects.postgresql import BYTEA, DOUBLE_PRECISION
 
 from src.interfaces import Source
+from src.jobs import DuneToLocalJob
 from src.sync_types import TypedDataFrame
 
 DUNE_TO_PG: dict[str, Type[Any]] = {
@@ -48,7 +49,7 @@ def dune_result_to_df(result: ExecutionResult) -> TypedDataFrame:
 
 
 class DuneSource(Source[TypedDataFrame], ABC):
-    def __init__(self, api_key: str, job: "DuneToLocalJob"):
+    def __init__(self, api_key: str, job: DuneToLocalJob):
         self.job = job
         self.client = DuneClient(api_key, performance=job.query_engine)
 

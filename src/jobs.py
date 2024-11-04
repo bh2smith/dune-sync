@@ -26,15 +26,8 @@ class BaseJob:
     """Base class for all jobs with common attributes"""
 
     table_name: str
-    source: Source
-    destination: Destination
-
-    def validate_source_destination(self) -> None:
-        if self.source == self.destination:
-            raise ValueError("Source and destination cannot be the same")
-
-    def __post_init__(self) -> None:
-        self.validate_source_destination()
+    source: Source[Any]
+    destination: Destination[Any]
 
     def run(self) -> None:
         df = self.source.fetch()

@@ -1,10 +1,11 @@
 import pandas as pd
-from sqlalchemy import create_engine, text
-from pandas import DataFrame
 import sqlalchemy
+from pandas import DataFrame
+from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 
 from src.interfaces import Source
+from src.jobs import LocalToDuneJob
 from src.logger import log
 
 
@@ -19,7 +20,7 @@ def _convert_bytea_to_hex(df: DataFrame) -> DataFrame:
 
 
 class PostgresSource(Source[DataFrame]):
-    def __init__(self, db_url: str, job: "LocalToDuneJob"):
+    def __init__(self, db_url: str, job: LocalToDuneJob):
         self.job = job
         self.engine: sqlalchemy.engine.Engine = create_engine(db_url)
 
