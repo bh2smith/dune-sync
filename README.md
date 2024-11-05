@@ -24,8 +24,8 @@ Currently supported sources are Dune and PostgreSQL. Description of required par
 
 - `ref`: String. Must be exactly `dune`
 - `query_id`: Integer. ID of an existing Dune Query to execute and fetch results from.
-- `query_engine`: String and one of exactly `medium` or `large`.
-- `poll_frequency`: Integer. Determines how often, in seconds, to poll Dune for results after running the given query ID
+- `query_engine`: Optional String. If specified must be one of exactly `medium` or `large`. Defaults to `medium`.
+- `poll_frequency`: Optional Integer. Determines how often, in seconds, to poll Dune for results after running the given query ID. Defaults to `1`.
 - `parameters`: Optional Dune Query parameters.
     - `name`: String. Name of parameter
     - `type`: String. Type of parameter. Must be one of: "text", "number", "datetime", "enum"
