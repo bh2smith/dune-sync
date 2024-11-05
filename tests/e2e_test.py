@@ -14,7 +14,7 @@ from sqlalchemy.dialects.postgresql import BYTEA
 from src.config import Env, RuntimeConfig
 from src.destinations.postgres import PostgresDestination
 from src.sources.dune import dune_result_to_df
-from tests import fixtures_root
+from tests import fixtures_root, config_root
 from tests.db_util import query_pg
 
 DB_URL = getenv("DB_URL", "postgresql://postgres:postgres@localhost:5432/postgres")
@@ -130,7 +130,6 @@ class TestEndToEnd(unittest.TestCase):
     @patch("src.config.load_dotenv")
     @patch.dict(os.environ, {"DUNE_API_KEY": "test_key", "DB_URL": DB_URL})
     def test_dune_to_local_job_run(self, mock_env, mock_dune_client):
-        env = Env.load()
         good_client = MagicMock(name="Mock Dune client that returns a result")
         good_client.run_query.return_value = SAMPLE_DUNE_RESULTS
 
@@ -139,17 +138,13 @@ class TestEndToEnd(unittest.TestCase):
 
         # everything is okay
         mock_dune_client.return_value = good_client
-        conf = RuntimeConfig.load_from_yaml(
-            fixtures_root / "dune_to_postgres.config.yaml"
-        )
+        conf = RuntimeConfig.load_from_yaml(config_root / "dune_to_postgres.yaml")
         conf.jobs[0].run()
 
         mock_dune_client.reset_mock()
 
         # Dune returned a None result
         mock_dune_client.return_value = bad_client_returned_none
-        conf = RuntimeConfig.load_from_yaml(
-            fixtures_root / "dune_to_postgres.config.yaml"
-        )
+        conf = RuntimeConfig.load_from_yaml(config_root / "dune_to_postgres.yaml")
         with self.assertRaises(ValueError):
             conf.jobs[0].run()

@@ -4,8 +4,8 @@ jobs:
     source:
       ref: postgres
       table_name: foo_table
-      if_exists: "append"
-      query_string: "SELECT * FROM test_table;"
+      if_exists: append
+      query_string: SELECT * FROM test_table;
     destination:
       ref: dune
-      table_name: "dune.username.table_name"
+      table_name: table_name
