@@ -1,3 +1,4 @@
+from pathlib import Path
 import pandas as pd
 import sqlalchemy
 from pandas import DataFrame
@@ -33,6 +34,7 @@ class PostgresSource(Source[DataFrame]):
     def __init__(self, db_url: str, query_string: str):
         self.query_string = query_string
         self.engine: sqlalchemy.engine.Engine = create_engine(db_url)
+        self.maybe_query_from_file()
 
     def validate(self) -> bool:
         try:
@@ -50,3 +52,19 @@ class PostgresSource(Source[DataFrame]):
 
     def is_empty(self, data: DataFrame) -> bool:
         return data.empty
+
+    def maybe_query_from_file(self) -> None:
+        if not self.query_string.lower().endswith(".sql"):
+            return
+
+        sql_source = Path(self.query_string)
+        if not sql_source.is_file() or not sql_source.exists():
+            raise RuntimeError(
+                "Detected directive to include an sql file, "
+                f"but it doesn't exist or isn't a file: {sql_source}"
+            )
+
+        with open(sql_source, "r", encoding="utf-8") as _handle:
+            sql = _handle.read()
+            self.query_string = sql
+            self.validate()

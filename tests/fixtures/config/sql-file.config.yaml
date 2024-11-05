@@ -1,0 +1,11 @@
+---
+jobs:
+  - name: Some other job
+    source:
+      ref: postgres
+      table_name: foo_table
+      if_exists: append
+      query_string: foo.sql
+    destination:
+      ref: dune
+      table_name: table_name
