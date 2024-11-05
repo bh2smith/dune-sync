@@ -1,12 +1,10 @@
----
 jobs:
   - name: Download simple test query to local postgres
     source:
       ref: dune
-      query_id: 4238114
-      query_engine: medium
-      poll_frequency: 5
+      query_id: 123
     destination:
       ref: sqlite
       table_name: test_table
       if_exists: replace
+

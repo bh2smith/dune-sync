@@ -47,20 +47,42 @@ class TestEnv(unittest.TestCase):
 class TestRuntimeConfig(unittest.TestCase):
     maxDiff = None
 
-    @patch.dict(
-        os.environ,
-        {
-            "DUNE_API_KEY": "test_key",
-            "DB_URL": "postgresql://postgres:postgres@localhost:5432/postgres",
-        },
-        clear=True,
-    )
-    def test_load_conf(self):
+    @classmethod
+    def setUpClass(cls):
+        cls.env_patcher = patch.dict(
+            os.environ,
+            {
+                "DUNE_API_KEY": "test_key",
+                "DB_URL": "postgresql://postgres:postgres@localhost:5432/postgres",
+            },
+            clear=True,
+        )
+        cls.env_patcher.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.env_patcher.stop()
+
+    def test_load_basic_conf(self):
         config_file = config_root / "basic.yaml"
         self.maxDiff = None
         conf = RuntimeConfig.load_from_yaml(config_file.absolute())
         self.assertEqual(len(conf.jobs), 2)
         # TODO: come up with more explicit assertions.
+
+    def test_load_unsupported_conf(self):
+        with self.assertRaises(ValueError) as context:
+            RuntimeConfig.load_from_yaml(config_root / "unsupported_source.yaml")
+        self.assertIn("Unsupported source_db type", str(context.exception))
+
+        with self.assertRaises(ValueError) as context:
+            RuntimeConfig.load_from_yaml(config_root / "unsupported_dest.yaml")
+        self.assertIn("Unsupported destination_db type", str(context.exception))
+
+    def test_load_buggy_conf(self):
+        with self.assertRaises(KeyError) as context:
+            RuntimeConfig.load_from_yaml(config_root / "buggy.yaml")
+        self.assertIn("'table_name'", str(context.exception))
 
 
 class TestParseQueryParameters(unittest.TestCase):

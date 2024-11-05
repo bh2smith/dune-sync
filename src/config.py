@@ -97,7 +97,8 @@ class RuntimeConfig:
 
     @staticmethod
     def _build_source(env: Env, source_config: dict[str, Any]) -> Source[Any]:
-        match Database.from_string(source_config["ref"]):
+        source_db = Database.from_string(source_config["ref"])
+        match source_db:
             case Database.DUNE:
                 return DuneSource(
                     api_key=env.dune_api_key,
@@ -107,19 +108,21 @@ class RuntimeConfig:
                             source_config.get("parameters", [])
                         ),
                     ),
-                    poll_frequency=source_config["poll_frequency"],
-                    query_engine=source_config["query_engine"],
+                    poll_frequency=source_config.get("poll_frequency", 1),
+                    query_engine=source_config.get("query_engine", "medium"),
                 )
 
             case Database.POSTGRES:
                 return PostgresSource(
                     db_url=env.db_url, query_string=source_config["query_string"]
                 )
-        raise ValueError(f"Unknown source type: {source_config['ref']}")
+
+        raise ValueError(f"Unsupported source_db type: {source_db}")
 
     @staticmethod
     def _build_destination(env: Env, dest_config: dict[str, Any]) -> Destination[Any]:
-        match Database.from_string(dest_config["ref"]):
+        destination_db = Database.from_string(dest_config["ref"])
+        match destination_db:
             case Database.DUNE:
                 return DuneDestination(
                     api_key=env.dune_api_key,
@@ -132,4 +135,4 @@ class RuntimeConfig:
                     table_name=dest_config["table_name"],
                     if_exists=dest_config["if_exists"],
                 )
-        raise ValueError(f"Unknown destination type: {dest_config['ref']}")
+        raise ValueError(f"Unsupported destination_db type: {destination_db}")

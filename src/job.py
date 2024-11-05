@@ -13,13 +13,14 @@ class Database(Enum):
 
     POSTGRES = "postgres"
     DUNE = "dune"
+    SQLITE = "sqlite"
 
     @classmethod
     def from_string(cls, value: str) -> Database:
         try:
             return cls(value.lower())
         except ValueError as e:
-            raise ValueError(f"Unknown source type: {value}") from e
+            raise ValueError(f"Unknown Database type: {value}") from e
 
 
 @dataclass
