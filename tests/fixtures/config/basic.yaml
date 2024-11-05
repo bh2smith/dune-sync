@@ -1,5 +1,6 @@
+---
 jobs:
-  - name: Sync Parameterized Dune Query with Multiple Types to Postgres
+  - name: Download simple test query to local postgres
     source:
       ref: dune
       query_id: 4238114
@@ -13,18 +14,19 @@ jobs:
           value: 2024-09-01 00:00:00
           type: DATE
         - name: result_limit
-          value: "10"
+          value: 10
           type: NUMBER
     destination:
       ref: postgres
-      table_name: results_4238114
+      table_name: parameterized_results_4238114
       if_exists: replace
 
-  - name: Table Independent Query
+  - name: Some other job
     source:
       ref: postgres
+      table_name: foo_table
       if_exists: append
-      query_string: SELECT 1 as number, '\x1234'::bytea as my_bytes;
+      query_string: SELECT * FROM foo;
     destination:
       ref: dune
-      table_name: "dune_sync_test_table"
+      table_name: table_name

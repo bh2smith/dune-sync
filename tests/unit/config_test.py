@@ -6,7 +6,7 @@ from unittest.mock import patch
 from dune_client.types import QueryParameter
 
 from src.config import Env, RuntimeConfig, parse_query_parameters
-from tests import fixtures_root
+from tests import config_root
 
 
 class TestEnv(unittest.TestCase):
@@ -56,7 +56,7 @@ class TestRuntimeConfig(unittest.TestCase):
         clear=True,
     )
     def test_load_conf(self):
-        config_file = fixtures_root / "basic.config.yaml"
+        config_file = config_root / "basic.yaml"
         self.maxDiff = None
         conf = RuntimeConfig.load_from_yaml(config_file.absolute())
         self.assertEqual(len(conf.jobs), 2)
