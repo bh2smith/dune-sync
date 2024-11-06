@@ -81,10 +81,10 @@ class TestPostgresSource(unittest.TestCase):
     def test_load_sql_file(self):
         os.chdir(fixtures_root)
 
-        RuntimeConfig.load_from_yaml(config_root / "sql-file.config.yaml")
+        RuntimeConfig.load_from_yaml(config_root / "sql_file.yaml")
 
         # ensure the missing file really is missing
         missing_file = fixtures_root / "missing-file.sql"
         missing_file.unlink(missing_ok=True)
         with self.assertRaises(RuntimeError):
-            RuntimeConfig.load_from_yaml(config_root / "invalid-sql-file.config.yaml")
+            RuntimeConfig.load_from_yaml(config_root / "invalid_sql_file.yaml")

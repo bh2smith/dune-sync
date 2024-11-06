@@ -66,7 +66,6 @@ class TestRuntimeConfig(unittest.TestCase):
 
     def test_load_basic_conf(self):
         config_file = config_root / "basic.yaml"
-        self.maxDiff = None
         conf = RuntimeConfig.load_from_yaml(config_file.absolute())
         self.assertEqual(2, len(conf.jobs))
         # TODO: come up with more explicit assertions.
