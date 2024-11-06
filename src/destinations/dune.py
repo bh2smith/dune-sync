@@ -30,7 +30,7 @@ class DuneDestination(Destination[DataFrame]):
     def save(self, data: DataFrame) -> None:
         try:
             log.debug("Uploading DF to Dune...")
-            result = self.client.upload_csv(self.table_name, data.to_csv())
+            result = self.client.upload_csv(self.table_name, data.to_csv(index=False))
             log.debug("Uploaded to Dune: %s", result)
             if not result:
                 raise RuntimeError("Dune Upload Failed")
