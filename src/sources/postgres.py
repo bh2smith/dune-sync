@@ -6,7 +6,7 @@ from pandas import DataFrame
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 
-from src.interfaces import Source
+from src.interfaces import Source, Validate
 from src.logger import log
 
 
@@ -20,7 +20,7 @@ def _convert_bytea_to_hex(df: DataFrame) -> DataFrame:
     return df
 
 
-class PostgresSource(Source[DataFrame]):
+class PostgresSource(Validate, Source[DataFrame]):
     """
     A class representing Postgres as a data source.
 
@@ -36,7 +36,7 @@ class PostgresSource(Source[DataFrame]):
         self.engine: sqlalchemy.engine.Engine = create_engine(db_url)
         self.query_string = ""
         self._set_query_string(query_string)
-        self.validate()
+        super().__init__()
 
     def validate(self) -> bool:
         try:
