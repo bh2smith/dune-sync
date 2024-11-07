@@ -23,6 +23,10 @@ class DuneDestination(Destination[DataFrame]):
         self.client = DuneClient(api_key)
         self.table_name: str = table_name
 
+    def validate(self) -> bool:
+        # Nothing I can think of to validate here...
+        return True
+
     def save(self, data: DataFrame) -> None:
         try:
             log.debug("Uploading DF to Dune...")

@@ -28,6 +28,10 @@ class PostgresDestination(Destination[TypedDataFrame]):
         self.table_name: str = table_name
         self.if_exists: TableExistsPolicy = if_exists
 
+    def validate(self) -> bool:
+        # Nothing I can think of to validate here...
+        return True
+
     def save(
         self,
         data: TypedDataFrame,
