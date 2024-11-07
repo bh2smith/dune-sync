@@ -36,7 +36,7 @@ class PostgresSource(Source[DataFrame]):
         self.engine: sqlalchemy.engine.Engine = create_engine(db_url)
         self.query_string = ""
         self._set_query_string(query_string)
-        self.validate()
+        super().__init__()
 
     def validate(self) -> bool:
         try:

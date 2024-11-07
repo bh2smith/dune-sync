@@ -10,7 +10,19 @@ TypedDataFrame = tuple[DataFrame, dict[str, Any]]
 T = TypeVar("T")
 
 
-class Source(ABC, Generic[T]):
+class Validate(ABC):
+    """Enforces validation on inheriting classes"""
+
+    def __init__(self) -> None:
+        if not self.validate():
+            raise ValueError(f"Config for {self.__class__.__name__} is invalid")
+
+    @abstractmethod
+    def validate(self) -> bool:
+        """Validate the configuration"""
+
+
+class Source(Validate, Generic[T]):
     """Abstract base class for data sources"""
 
     @abstractmethod
@@ -18,21 +30,13 @@ class Source(ABC, Generic[T]):
         """Fetch data from the source"""
 
     @abstractmethod
-    def validate(self) -> bool:
-        """Validate the source configuration"""
-
-    @abstractmethod
     def is_empty(self, data: T) -> bool:
         """Return True if the fetched data is empty"""
 
 
-class Destination(ABC, Generic[T]):
+class Destination(Validate, Generic[T]):
     """Abstract base class for data destinations"""
 
     @abstractmethod
     def save(self, data: T) -> None:
         """Save data to the destination"""
-
-    @abstractmethod
-    def validate(self) -> bool:
-        """Validate the destination configuration"""

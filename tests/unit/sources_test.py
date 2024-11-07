@@ -3,13 +3,14 @@ import unittest
 from unittest.mock import patch
 
 import pandas as pd
+import sqlalchemy
 from dune_client.models import ExecutionResult, ResultMetadata
 from sqlalchemy import BIGINT
 from sqlalchemy.dialects.postgresql import BYTEA
 
 from src.config import RuntimeConfig
 from src.sources.dune import _reformat_varbinary_columns, dune_result_to_df
-from src.sources.postgres import _convert_bytea_to_hex
+from src.sources.postgres import PostgresSource, _convert_bytea_to_hex
 from tests import fixtures_root, config_root
 
 
@@ -70,14 +71,21 @@ class TestSourceUtils(unittest.TestCase):
 
 class TestPostgresSource(unittest.TestCase):
 
-    @patch.dict(
-        os.environ,
-        {
-            "DUNE_API_KEY": "test_key",
-            "DB_URL": "postgresql://postgres:postgres@localhost:5432/postgres",
-        },
-        clear=True,
-    )
+    @classmethod
+    def setUpClass(cls):
+        cls.env_patcher = patch.dict(
+            os.environ,
+            {
+                "DUNE_API_KEY": "test_key",
+                "DB_URL": "postgresql://postgres:postgres@localhost:5432/postgres",
+            },
+            clear=True,
+        )
+        cls.env_patcher.start()
+
+    # TODO: This test is a Config loader test not directly testing PostgresSource
+    #  When changing it to call PGSource directly, yields a bug with the constructor.
+    #  The constructor only accepts string input, not Path!
     def test_load_sql_file(self):
         os.chdir(fixtures_root)
 
@@ -88,3 +96,30 @@ class TestPostgresSource(unittest.TestCase):
         missing_file.unlink(missing_ok=True)
         with self.assertRaises(RuntimeError):
             RuntimeConfig.load_from_yaml(config_root / "invalid_sql_file.yaml")
+
+    def test_invalid_query_string(self):
+        with self.assertRaises(ValueError) as context:
+            PostgresSource(
+                db_url=os.environ["DB_URL"],
+                query_string="SELECT * FROM does_not_exist",
+            )
+        self.assertEqual("Config for PostgresSource is invalid", str(context.exception))
+
+    def test_invalid_connection_string(self):
+        with self.assertRaises(sqlalchemy.exc.ArgumentError) as context:
+            PostgresSource(
+                db_url="invalid connection string",
+                query_string="SELECT 1",
+            )
+        self.assertEqual(
+            "Could not parse SQLAlchemy URL from string 'invalid connection string'",
+            str(context.exception),
+        )
+
+    def test_invalid_db_url(self):
+        with self.assertRaises(ValueError) as context:
+            PostgresSource(
+                db_url="postgresql://postgres:BAD_PASSWORD@localhost:5432/postgres",
+                query_string="SELECT 1",
+            )
+        self.assertEqual("Config for PostgresSource is invalid", str(context.exception))
