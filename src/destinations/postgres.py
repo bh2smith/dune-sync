@@ -27,6 +27,7 @@ class PostgresDestination(Destination[TypedDataFrame]):
         self.engine: sqlalchemy.engine.Engine = create_engine(db_url)
         self.table_name: str = table_name
         self.if_exists: TableExistsPolicy = if_exists
+        super().__init__()
 
     def validate(self) -> bool:
         # Nothing I can think of to validate here...

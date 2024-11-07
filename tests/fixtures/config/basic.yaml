@@ -26,7 +26,7 @@ jobs:
       ref: postgres
       table_name: foo_table
       if_exists: append
-      query_string: SELECT * FROM foo;
+      query_string: SELECT 1;
     destination:
       ref: dune
       table_name: table_name

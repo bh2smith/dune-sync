@@ -70,6 +70,7 @@ class DuneSource(Source[TypedDataFrame], ABC):
         self.query = query
         self.poll_frequency = poll_frequency
         self.client = DuneClient(api_key, performance=query_engine)
+        super().__init__()
 
     def validate(self) -> bool:
         # Nothing I can think of to validate here...
