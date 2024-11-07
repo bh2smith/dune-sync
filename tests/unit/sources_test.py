@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import patch
 
 import pandas as pd
+import sqlalchemy
 from dune_client.models import ExecutionResult, ResultMetadata
 from sqlalchemy import BIGINT
 from sqlalchemy.dialects.postgresql import BYTEA
@@ -96,10 +97,29 @@ class TestPostgresSource(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             RuntimeConfig.load_from_yaml(config_root / "invalid_sql_file.yaml")
 
-    def test_invalid_pg_source(self):
+    def test_invalid_query_string(self):
         with self.assertRaises(ValueError) as context:
             PostgresSource(
                 db_url=os.environ["DB_URL"],
                 query_string="SELECT * FROM does_not_exist",
+            )
+        self.assertEqual("Config for PostgresSource is invalid", str(context.exception))
+
+    def test_invalid_connection_string(self):
+        with self.assertRaises(sqlalchemy.exc.ArgumentError) as context:
+            PostgresSource(
+                db_url="invalid connection string",
+                query_string="SELECT 1",
+            )
+        self.assertEqual(
+            "Could not parse SQLAlchemy URL from string 'invalid connection string'",
+            str(context.exception),
+        )
+
+    def test_invalid_db_url(self):
+        with self.assertRaises(ValueError) as context:
+            PostgresSource(
+                db_url="postgresql://postgres:BAD_PASSWORD@localhost:5432/postgres",
+                query_string="SELECT 1",
             )
         self.assertEqual("Config for PostgresSource is invalid", str(context.exception))
