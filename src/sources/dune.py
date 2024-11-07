@@ -7,12 +7,13 @@ from dune_client.models import ExecutionResult
 from dune_client.query import QueryBase
 from pandas import DataFrame
 from sqlalchemy import BIGINT, BOOLEAN, VARCHAR, DATE, TIMESTAMP
-from sqlalchemy.dialects.postgresql import BYTEA, DOUBLE_PRECISION
+from sqlalchemy.dialects.postgresql import BYTEA, DOUBLE_PRECISION, INTEGER
 
 from src.interfaces import Source, TypedDataFrame
 
 DUNE_TO_PG: dict[str, Type[Any]] = {
     "bigint": BIGINT,
+    "integer": INTEGER,
     "varbinary": BYTEA,
     "date": DATE,
     "boolean": BOOLEAN,
