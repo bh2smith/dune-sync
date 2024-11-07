@@ -1,12 +1,16 @@
+import os
 import unittest
+from unittest.mock import patch
 
 import pandas as pd
 from dune_client.models import ExecutionResult, ResultMetadata
 from sqlalchemy import BIGINT
 from sqlalchemy.dialects.postgresql import BYTEA
 
+from src.config import RuntimeConfig
 from src.sources.dune import _reformat_varbinary_columns, dune_result_to_df
 from src.sources.postgres import _convert_bytea_to_hex
+from tests import fixtures_root, config_root
 
 
 class TestSourceUtils(unittest.TestCase):
@@ -62,3 +66,25 @@ class TestSourceUtils(unittest.TestCase):
         result = _convert_bytea_to_hex(df)
         assert result["hex_col"].tolist() == ["0x1234", "0xabcd"]
         assert result["normal_col"].tolist() == [1, 2]
+
+
+class TestPostgresSource(unittest.TestCase):
+
+    @patch.dict(
+        os.environ,
+        {
+            "DUNE_API_KEY": "test_key",
+            "DB_URL": "postgresql://postgres:postgres@localhost:5432/postgres",
+        },
+        clear=True,
+    )
+    def test_load_sql_file(self):
+        os.chdir(fixtures_root)
+
+        RuntimeConfig.load_from_yaml(config_root / "sql_file.yaml")
+
+        # ensure the missing file really is missing
+        missing_file = fixtures_root / "missing-file.sql"
+        missing_file.unlink(missing_ok=True)
+        with self.assertRaises(RuntimeError):
+            RuntimeConfig.load_from_yaml(config_root / "invalid_sql_file.yaml")

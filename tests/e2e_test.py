@@ -11,7 +11,7 @@ from pandas import DataFrame
 from sqlalchemy import BIGINT, BOOLEAN, VARCHAR, DATE, TIMESTAMP
 from sqlalchemy.dialects.postgresql import BYTEA
 
-from src.config import Env, RuntimeConfig
+from src.config import RuntimeConfig
 from src.destinations.postgres import PostgresDestination
 from src.sources.dune import dune_result_to_df
 from tests import fixtures_root, config_root
@@ -99,7 +99,6 @@ class TestEndToEnd(unittest.TestCase):
             pandas.testing.assert_frame_equal(df, expected, check_dtype=True)
         )
         self.assertEqual(
-            types,
             {
                 "block_date": DATE,
                 "block_number": BIGINT,
@@ -108,12 +107,12 @@ class TestEndToEnd(unittest.TestCase):
                 "success": BOOLEAN,
                 "type": VARCHAR,
             },
+            types,
         )
 
         pg.save((df, types))
 
         self.assertEqual(
-            query_pg(pg.engine, "select * from test_table"),
             [
                 {
                     "block_date": datetime.date(2024, 9, 28),
@@ -124,6 +123,7 @@ class TestEndToEnd(unittest.TestCase):
                     "type": "DynamicFee",
                 }
             ],
+            query_pg(pg.engine, "select * from test_table"),
         )
 
     @patch("src.sources.dune.DuneClient")

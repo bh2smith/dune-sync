@@ -18,8 +18,8 @@ class TestEnv(unittest.TestCase):
     )
     def test_load_env_success(self, mock_load_dotenv):
         env = Env.load()
-        self.assertEqual(env.dune_api_key, "test_key")
-        self.assertEqual(env.db_url, "postgres://localhost/test")
+        self.assertEqual("test_key", env.dune_api_key)
+        self.assertEqual("postgres://localhost/test", env.db_url)
 
     @patch(
         "src.config.load_dotenv"
@@ -29,7 +29,7 @@ class TestEnv(unittest.TestCase):
         with self.assertRaises(RuntimeError) as context:
             Env.load()
         self.assertEqual(
-            str(context.exception), "DUNE_API_KEY environment variable must be set!"
+            "DUNE_API_KEY environment variable must be set!", str(context.exception)
         )
 
     @patch(
@@ -40,7 +40,8 @@ class TestEnv(unittest.TestCase):
         with self.assertRaises(RuntimeError) as context:
             Env.load()
         self.assertEqual(
-            str(context.exception), "DB_URL environment variable must be set!"
+            "DB_URL environment variable must be set!",
+            str(context.exception),
         )
 
 
@@ -65,9 +66,8 @@ class TestRuntimeConfig(unittest.TestCase):
 
     def test_load_basic_conf(self):
         config_file = config_root / "basic.yaml"
-        self.maxDiff = None
         conf = RuntimeConfig.load_from_yaml(config_file.absolute())
-        self.assertEqual(len(conf.jobs), 2)
+        self.assertEqual(2, len(conf.jobs))
         # TODO: come up with more explicit assertions.
 
     def test_load_unsupported_conf(self):
@@ -96,7 +96,6 @@ class TestParseQueryParameters(unittest.TestCase):
         ]
 
         self.assertEqual(
-            parse_query_parameters(params),
             [
                 QueryParameter.text_type("text", "sample text"),
                 QueryParameter.number_type("number", 42),
@@ -106,6 +105,7 @@ class TestParseQueryParameters(unittest.TestCase):
                 ),
                 QueryParameter.enum_type("enum", "option1"),
             ],
+            parse_query_parameters(params),
         )
 
     def test_unknown_parameter_type(self):

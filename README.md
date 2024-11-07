@@ -35,7 +35,9 @@ Currently supported sources are Dune and PostgreSQL. Description of required par
 
 - `ref`: String. Must be exactly `postgres`
 - `query_string`: String. Query to run against a Postgres server in order to fetch results and submit them to a
-  Destination
+  Destination.
+  If instead of an SQL query it's a path that ends in `.sql`, read the `query_string` from the specified file instead.
+  File must be relative to `main.py` or be specified with an absolute path.
 
 #### Destinations
 
