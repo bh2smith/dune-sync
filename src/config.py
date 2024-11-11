@@ -82,7 +82,8 @@ class Env:
 
         return cls(db_url, dune_api_key)
 
-    def interpolate(self, value: Any) -> Any:
+    @staticmethod
+    def interpolate(value: Any) -> Any:
         """
         Interpolate environment variables in a string value.
         Handles ${VAR} and $VAR syntax.

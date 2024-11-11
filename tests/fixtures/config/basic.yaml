@@ -1,4 +1,20 @@
 ---
+sources:
+  - name: dune
+    type: dune
+    key: ${DUNE_API_KEY}
+  - name: postgres
+    type: postgres
+    key: ${DB_URL}
+
+destinations:
+  - name: postgres
+    type: postgres
+    key: ${DB_URL}
+  - name: dune
+    type: dune
+    key: ${DUNE_API_KEY}
+
 jobs:
   - name: Download simple test query to local postgres
     source:
