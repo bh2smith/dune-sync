@@ -34,7 +34,7 @@ SAMPLE_DUNE_RESULTS = ResultsResponse.from_dict(
                 {
                     "block_date": "2024-09-28",
                     "block_number": 20849352,
-                    "block_time": "2024-09-28 13:12:11.000 UTC",
+                    "blocktime": "2024-09-28 13:12:11.000 UTC",
                     "hash": "0x5f0b3f5d3f15bf9943b1b6c77f69",
                     "success": True,
                     "type": "DynamicFee",
@@ -42,7 +42,7 @@ SAMPLE_DUNE_RESULTS = ResultsResponse.from_dict(
             ],
             "metadata": {
                 "column_names": [
-                    "block_time",
+                    "blocktime",
                     "block_number",
                     "success",
                     "hash",
@@ -89,7 +89,7 @@ class TestEndToEnd(unittest.TestCase):
             {
                 "block_date": ["2024-09-28"],
                 "block_number": [20849352],
-                "block_time": ["2024-09-28 13:12:11.000 UTC"],
+                "blocktime": ["2024-09-28 13:12:11.000 UTC"],
                 "hash": [b"_\x0b?]?\x15\xbf\x99C\xb1\xb6\xc7\x7fi"],
                 "success": [True],
                 "type": ["DynamicFee"],
@@ -102,7 +102,7 @@ class TestEndToEnd(unittest.TestCase):
             {
                 "block_date": DATE,
                 "block_number": BIGINT,
-                "block_time": TIMESTAMP,
+                "blocktime": TIMESTAMP,
                 "hash": BYTEA,
                 "success": BOOLEAN,
                 "type": VARCHAR,
@@ -117,7 +117,7 @@ class TestEndToEnd(unittest.TestCase):
                 {
                     "block_date": datetime.date(2024, 9, 28),
                     "block_number": 20849352,
-                    "block_time": datetime.datetime(2024, 9, 28, 13, 12, 11),
+                    "blocktime": datetime.datetime(2024, 9, 28, 13, 12, 11),
                     "hash": "0x5f0b3f5d3f15bf9943b1b6c77f69",
                     "success": True,
                     "type": "DynamicFee",

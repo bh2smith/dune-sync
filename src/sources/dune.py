@@ -1,4 +1,5 @@
 from abc import ABC
+import json
 from typing import Type, Any, Literal
 
 import pandas as pd
@@ -6,11 +7,11 @@ from dune_client.client import DuneClient
 from dune_client.models import ExecutionResult
 from dune_client.query import QueryBase
 from pandas import DataFrame
-from sqlalchemy import BIGINT, BOOLEAN, VARCHAR, DATE, TIMESTAMP
-from sqlalchemy.dialects.postgresql import BYTEA, DOUBLE_PRECISION, INTEGER
+from sqlalchemy import BIGINT, BOOLEAN, VARCHAR, DATE, TIMESTAMP, NUMERIC
+from sqlalchemy.dialects.postgresql import BYTEA, DOUBLE_PRECISION, INTEGER, JSONB
 
 from src.interfaces import Source, TypedDataFrame
-
+from src.logger import log
 DUNE_TO_PG: dict[str, Type[Any]] = {
     "bigint": BIGINT,
     "integer": INTEGER,
@@ -20,6 +21,7 @@ DUNE_TO_PG: dict[str, Type[Any]] = {
     "varchar": VARCHAR,
     "double": DOUBLE_PRECISION,
     "timestamp with time zone": TIMESTAMP,
+    "uint256": NUMERIC,
     # TODO: parse these innards more dynamically.
     # "decimal(38, 0)": NUMERIC(38, 0),
     # "array(varbinary)": ARRAY(BYTEA),
@@ -33,18 +35,30 @@ def _reformat_varbinary_columns(
         df[col] = df[col].apply(lambda x: bytes.fromhex(x[2:]) if pd.notnull(x) else x)
     return df
 
+def _reformat_unknown_columns(
+    df: DataFrame, unknown_columns: list[str]
+) -> DataFrame:
+    for col in unknown_columns:
+        df[col] = df[col].apply(json.dumps)
+    return df
+
 
 def dune_result_to_df(result: ExecutionResult) -> TypedDataFrame:
     metadata = result.metadata
-    dtypes, varbinary_columns = {}, []
+    dtypes, varbinary_columns, unknown_columns = {}, [], []
     for name, d_type in zip(metadata.column_names, metadata.column_types):
-        dtypes[name] = DUNE_TO_PG[d_type]
+        dtypes[name] = DUNE_TO_PG.get(d_type)
+        if dtypes[name] is None:
+            log.warning(f"Unknown column: {d_type} - treating as JSONB")
+            unknown_columns.append(name)
+            dtypes[name] = JSONB
         if d_type == "varbinary":
             varbinary_columns.append(name)
 
     df = pd.DataFrame(result.rows)
     # escape bytes
     df = _reformat_varbinary_columns(df, varbinary_columns)
+    df = _reformat_unknown_columns(df, unknown_columns)
     return df, dtypes
 
 
