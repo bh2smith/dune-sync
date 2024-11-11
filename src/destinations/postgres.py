@@ -21,11 +21,9 @@ class PostgresDestination(Destination[TypedDataFrame]):
         The name of the table where the data will be saved.
     """
 
-    def __init__(
-        self, db_url: str, table_name: str, if_exists: TableExistsPolicy = "append"
-    ):
+    def __init__(self, db_url: str, if_exists: TableExistsPolicy = "append"):
         self.engine: sqlalchemy.engine.Engine = create_engine(db_url)
-        self.table_name: str = table_name
+        self.table_name: str = ""
         self.if_exists: TableExistsPolicy = if_exists
         super().__init__()
 

@@ -19,6 +19,7 @@ DUNE_TO_PG: dict[str, Type[Any]] = {
     "boolean": BOOLEAN,
     "varchar": VARCHAR,
     "double": DOUBLE_PRECISION,
+    "real": DOUBLE_PRECISION,
     "timestamp with time zone": TIMESTAMP,
     # TODO: parse these innards more dynamically.
     # "decimal(38, 0)": NUMERIC(38, 0),
@@ -60,16 +61,15 @@ class DuneSource(Source[TypedDataFrame], ABC):
         The query to execute.
     """
 
+    query: QueryBase
+
     def __init__(
         self,
         api_key: str,
-        query: QueryBase,
-        poll_frequency: int = 1,
-        query_engine: Literal["medium", "large"] = "medium",
     ) -> None:
-        self.query = query
-        self.poll_frequency = poll_frequency
-        self.client = DuneClient(api_key, performance=query_engine)
+        self.api_key = api_key
+        self.query_engine = "medium"
+        self.poll_frequency = 1
         super().__init__()
 
     def validate(self) -> bool:
@@ -77,7 +77,8 @@ class DuneSource(Source[TypedDataFrame], ABC):
         return True
 
     def fetch(self) -> TypedDataFrame:
-        response = self.client.run_query(
+        client = DuneClient(self.api_key, performance=self.query_engine)
+        response = client.run_query(
             query=self.query,
             ping_frequency=self.poll_frequency,
         )

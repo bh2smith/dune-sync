@@ -32,11 +32,19 @@ class PostgresSource(Source[DataFrame]):
         The SQL query to execute.
     """
 
-    def __init__(self, db_url: str, query_string: str):
+    def __init__(self, db_url: str):
+        self._query_string = None
         self.engine: sqlalchemy.engine.Engine = create_engine(db_url)
-        self.query_string = ""
-        self._set_query_string(query_string)
         super().__init__()
+
+    @property
+    def query_string(self) -> str:
+        return self._query_string
+
+    @query_string.setter
+    def query_string(self, query_string):
+        self._set_query_string(query_string)
+        self.validate()
 
     def validate(self) -> bool:
         try:

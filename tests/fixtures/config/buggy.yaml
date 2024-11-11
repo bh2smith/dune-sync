@@ -1,4 +1,12 @@
 ---
+destinations:
+  - name: postgres
+    type: postgres
+    db_url: "postgresql://postgres:postgres@localhost:5432/postgres"
+sources:
+  - name: dune
+    type: dune
+    api_key: "F00B4R"
 jobs:
   - name: Download simple test query to local postgres
     source:

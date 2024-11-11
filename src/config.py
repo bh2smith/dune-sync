@@ -3,7 +3,8 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from string import Template
+from typing import Any, Dict
 
 import yaml
 from dotenv import load_dotenv
@@ -35,21 +36,41 @@ class Env:
     None
     """
 
-    db_url: str
-    dune_api_key: str
+    env_vars: dict
 
     @classmethod
     def load(cls) -> Env:
         load_dotenv()
-        dune_api_key = os.environ.get("DUNE_API_KEY")
-        db_url = os.environ.get("DB_URL")
+        cls.env_vars = dict(os.environ)
 
-        if dune_api_key is None:
-            raise RuntimeError("DUNE_API_KEY environment variable must be set!")
-        if db_url is None:
-            raise RuntimeError("DB_URL environment variable must be set!")
+        return cls(env_vars=cls.env_vars)
 
-        return cls(db_url, dune_api_key)
+    def interpolate(self, value: Any) -> Any:
+        """
+        Interpolate environment variables in a string value.
+        Handles ${VAR} and $VAR syntax.
+        Returns the original value if it's not a string.
+
+        Args:
+            value: The value to interpolate. Can be any type, but only strings
+                  will be processed for environment variables.
+
+        Returns:
+            The interpolated value if it's a string, otherwise the original value.
+
+        Raises:
+            KeyError: If an environment variable referenced in the string doesn't exist.
+        """
+        if not isinstance(value, str):
+            return value
+
+        # Handle ${VAR} syntax
+        template = Template(value)
+        try:
+            return template.substitute(self.env_vars)
+        except KeyError as e:
+            missing_var = str(e).strip("'")
+            raise KeyError(f"Environment variable '{missing_var}' not found. ") from e
 
 
 def parse_query_parameters(params: list[dict[str, Any]]) -> list[QueryParameter]:
@@ -78,6 +99,8 @@ def parse_query_parameters(params: list[dict[str, Any]]) -> list[QueryParameter]
 class RuntimeConfig:
     """A class to represent the runtime configuration settings."""
 
+    sources: Dict[str, Source[Any]]
+    destinations: Dict[str, Destination[Any]]
     jobs: list[Job]
 
     @classmethod
@@ -86,53 +109,104 @@ class RuntimeConfig:
             data = yaml.safe_load(_handle)
 
         env = Env.load()
-        jobs = []
 
+        sources = {}
+        for source_config in data.get("sources", []):
+            if sources.get(source_config["name"]):
+                raise ValueError(f'Duplicate source name {source_config["name"]}')
+            sources[source_config["name"]] = cls._build_source(env, source_config)
+
+        destinations = {}
+        for dest_config in data.get("destinations", []):
+            if destinations.get(dest_config["name"]):
+                raise ValueError(f'Duplicate source name {dest_config["name"]}')
+            destinations[dest_config["name"]] = cls._build_destination(env, dest_config)
+
+        jobs = []
         for job_config in data.get("jobs", []):
-            source = cls._build_source(env, job_config["source"])
-            destination = cls._build_destination(env, job_config["destination"])
+            source_ref = job_config["source"]["ref"]
+            dest_ref = job_config["destination"]["ref"]
+
+            if source_ref not in sources:
+                raise ValueError(
+                    f"Source '{source_ref}' not found in sources configuration"
+                )
+            if dest_ref not in destinations:
+                raise ValueError(
+                    f"Destination '{dest_ref}' not found in destinations configuration"
+                )
+
+            source = cls._update_source_config(sources[source_ref], job_config)
+            destination = cls._update_destination_config(
+                destinations[dest_ref], job_config
+            )
+
             jobs.append(Job(source, destination))
 
-        return cls(jobs=jobs)
+        return cls(sources=sources, destinations=destinations, jobs=jobs)
 
     @staticmethod
     def _build_source(env: Env, source_config: dict[str, Any]) -> Source[Any]:
-        source_db = Database.from_string(source_config["ref"])
-        match source_db:
-            case Database.DUNE:
+        source_type = source_config["type"].lower()
+        match source_type:
+            case Database.DUNE.value:
                 return DuneSource(
-                    api_key=env.dune_api_key,
-                    query=QueryBase(
-                        query_id=int(source_config["query_id"]),
-                        params=parse_query_parameters(
-                            source_config.get("parameters", [])
-                        ),
-                    ),
-                    poll_frequency=source_config.get("poll_frequency", 1),
-                    query_engine=source_config.get("query_engine", "medium"),
+                    api_key=env.interpolate(source_config["api_key"]),
                 )
-
-            case Database.POSTGRES:
+            case Database.POSTGRES.value:
                 return PostgresSource(
-                    db_url=env.db_url, query_string=source_config["query_string"]
+                    db_url=env.interpolate(source_config["db_url"]),
                 )
-
-        raise ValueError(f"Unsupported source_db type: {source_db}")
+        raise ValueError(f"Unsupported source type: {source_type}")
 
     @staticmethod
     def _build_destination(env: Env, dest_config: dict[str, Any]) -> Destination[Any]:
-        destination_db = Database.from_string(dest_config["ref"])
-        match destination_db:
-            case Database.DUNE:
+        dest_type = dest_config["type"].lower()
+        match dest_type:
+            case Database.DUNE.value:
                 return DuneDestination(
-                    api_key=env.dune_api_key,
-                    table_name=dest_config["table_name"],
+                    api_key=env.interpolate(dest_config["key"]),
                 )
-
-            case Database.POSTGRES:
+            case Database.POSTGRES.value:
                 return PostgresDestination(
-                    db_url=env.db_url,
-                    table_name=dest_config["table_name"],
-                    if_exists=dest_config["if_exists"],
+                    db_url=env.interpolate(dest_config["db_url"]),
                 )
-        raise ValueError(f"Unsupported destination_db type: {destination_db}")
+        raise ValueError(f"Unsupported destination type: {dest_type}")
+
+    @staticmethod
+    def _update_source_config(
+        source: Source[Any], job_config: dict[str, Any]
+    ) -> Source[Any]:
+        """Update source with job-specific configuration."""
+        match source:
+            case DuneSource():
+                source.query = QueryBase(
+                    query_id=int(job_config["source"]["query_id"]),
+                    params=parse_query_parameters(job_config.get("parameters", [])),
+                )
+                source.poll_frequency = job_config.get("poll_frequency", 1)
+                source.query_engine = job_config.get("query_engine", "medium")
+
+            case Database.POSTGRES.value:
+                # TODO update
+                pass
+            case _:
+                raise ValueError(f"Unsupported source type: {type(source)}")
+
+        return source
+
+    @staticmethod
+    def _update_destination_config(
+        dest: Destination[Any], job_config: dict[str, Any]
+    ) -> Destination[Any]:
+        """Update destination with job-specific configuration."""
+        match dest:
+            case DuneDestination():
+                # TODO update
+                pass
+            case PostgresDestination():
+                dest.table_name = job_config["destination"]["table_name"]
+            case _:
+                raise ValueError(f"Unsupported destination type: {type(dest)}")
+
+        return dest
