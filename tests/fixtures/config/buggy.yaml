@@ -1,4 +1,14 @@
 ---
+sources:
+  - name: dune
+    type: dune
+    key: fake-key
+
+destinations:
+  - name: postgres
+    type: postgres
+    key: fake-pg-key
+
 jobs:
   - name: Download simple test query to local postgres
     source:

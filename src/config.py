@@ -4,6 +4,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from string import Template
 
 import yaml
 from dotenv import load_dotenv
@@ -16,6 +17,36 @@ from src.interfaces import Destination, Source
 from src.job import Job, Database
 from src.sources.dune import DuneSource
 from src.sources.postgres import PostgresSource
+
+
+@dataclass
+class DbRef:
+    """
+    A class to represent a database reference configuration.
+
+    Attributes
+    ----------
+    name : str
+        The name of the database reference
+    type : Database
+        The type of database (DUNE or POSTGRES)
+    key : str
+        The connection key (API key or connection string)
+    """
+
+    name: str
+    type: Database
+    key: str
+
+    @classmethod
+    def from_dict(cls, data: dict[str, str]) -> DbRef:
+        env = Env.load()
+        return cls(
+            name=data["name"],
+            type=Database.from_string(data["type"]),
+            # TODO: read env variables
+            key=env.interpolate(data["key"]),
+        )
 
 
 @dataclass
@@ -51,6 +82,31 @@ class Env:
 
         return cls(db_url, dune_api_key)
 
+    @staticmethod
+    def interpolate(value: Any) -> Any:
+        """
+        Interpolate environment variables in a string value.
+        Handles ${VAR} and $VAR syntax.
+        Returns the original value if it's not a string.
+        Args:
+            value: The value to interpolate. Can be any type, but only strings
+                  will be processed for environment variables.
+        Returns:
+            The interpolated value if it's a string, otherwise the original value.
+        Raises:
+            KeyError: If an environment variable referenced in the string doesn't exist.
+        """
+        if not isinstance(value, str):
+            return value
+
+        # Handle ${VAR} syntax
+        template = Template(value)
+        try:
+            return template.substitute(os.environ)
+        except KeyError as e:
+            missing_var = str(e).strip("'")
+            raise KeyError(f"Environment variable '{missing_var}' not found. ") from e
+
 
 def parse_query_parameters(params: list[dict[str, Any]]) -> list[QueryParameter]:
     query_params = []
@@ -85,23 +141,35 @@ class RuntimeConfig:
         with open(file_path, "rb") as _handle:
             data = yaml.safe_load(_handle)
 
-        env = Env.load()
-        jobs = []
+        # Load sources map
+        sources = {}
+        for source in data.get("sources", []):
+            sources[str(source["name"])] = DbRef.from_dict(source)
 
+        # Load destinations map
+        destinations = {}
+        for destination in data.get("destinations", []):
+            destinations[str(destination["name"])] = DbRef.from_dict(destination)
+
+        jobs = []
         for job_config in data.get("jobs", []):
-            source = cls._build_source(env, job_config["source"])
-            destination = cls._build_destination(env, job_config["destination"])
+            source = cls._build_source(job_config["source"], sources)
+            destination = cls._build_destination(
+                job_config["destination"], destinations
+            )
             jobs.append(Job(source, destination))
 
         return cls(jobs=jobs)
 
     @staticmethod
-    def _build_source(env: Env, source_config: dict[str, Any]) -> Source[Any]:
-        source_db = Database.from_string(source_config["ref"])
-        match source_db:
+    def _build_source(
+        source_config: dict[str, Any], sources: dict[str, DbRef]
+    ) -> Source[Any]:
+        source = sources[source_config["ref"]]
+        match source.type:
             case Database.DUNE:
                 return DuneSource(
-                    api_key=env.dune_api_key,
+                    api_key=source.key,
                     query=QueryBase(
                         query_id=int(source_config["query_id"]),
                         params=parse_query_parameters(
@@ -114,25 +182,27 @@ class RuntimeConfig:
 
             case Database.POSTGRES:
                 return PostgresSource(
-                    db_url=env.db_url, query_string=source_config["query_string"]
+                    db_url=source.key, query_string=source_config["query_string"]
                 )
 
-        raise ValueError(f"Unsupported source_db type: {source_db}")
+        raise ValueError(f"Unsupported source_db type: {source}")
 
     @staticmethod
-    def _build_destination(env: Env, dest_config: dict[str, Any]) -> Destination[Any]:
-        destination_db = Database.from_string(dest_config["ref"])
-        match destination_db:
+    def _build_destination(
+        dest_config: dict[str, Any], destinations: dict[str, DbRef]
+    ) -> Destination[Any]:
+        dest = destinations[dest_config["ref"]]
+        match dest.type:
             case Database.DUNE:
                 return DuneDestination(
-                    api_key=env.dune_api_key,
+                    api_key=dest.key,
                     table_name=dest_config["table_name"],
                 )
 
             case Database.POSTGRES:
                 return PostgresDestination(
-                    db_url=env.db_url,
+                    db_url=dest.key,
                     table_name=dest_config["table_name"],
                     if_exists=dest_config["if_exists"],
                 )
-        raise ValueError(f"Unsupported destination_db type: {destination_db}")
+        raise ValueError(f"Unsupported destination_db type: {dest}")

@@ -1,4 +1,15 @@
 ---
+sources:
+  - name: dune
+    type: dune
+    key: fake-key
+
+destinations:
+  - name: postgres
+    type: postgres
+    key: postgresql://postgres:postgres@localhost:5432/postgres
+
+
 jobs:
   - name: Download simple test query to local postgres
     source:

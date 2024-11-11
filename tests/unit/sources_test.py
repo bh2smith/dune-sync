@@ -83,9 +83,6 @@ class TestPostgresSource(unittest.TestCase):
         )
         cls.env_patcher.start()
 
-    # TODO: This test is a Config loader test not directly testing PostgresSource
-    #  When changing it to call PGSource directly, yields a bug with the constructor.
-    #  The constructor only accepts string input, not Path!
     def test_load_sql_file(self):
         os.chdir(fixtures_root)
 
