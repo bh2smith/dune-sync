@@ -12,6 +12,7 @@ from sqlalchemy.dialects.postgresql import BYTEA, DOUBLE_PRECISION, INTEGER, JSO
 
 from src.interfaces import Source, TypedDataFrame
 from src.logger import log
+
 DUNE_TO_PG: dict[str, Type[Any]] = {
     "bigint": BIGINT,
     "integer": INTEGER,
@@ -35,9 +36,8 @@ def _reformat_varbinary_columns(
         df[col] = df[col].apply(lambda x: bytes.fromhex(x[2:]) if pd.notnull(x) else x)
     return df
 
-def _reformat_unknown_columns(
-    df: DataFrame, unknown_columns: list[str]
-) -> DataFrame:
+
+def _reformat_unknown_columns(df: DataFrame, unknown_columns: list[str]) -> DataFrame:
     for col in unknown_columns:
         df[col] = df[col].apply(json.dumps)
     return df
@@ -49,7 +49,7 @@ def dune_result_to_df(result: ExecutionResult) -> TypedDataFrame:
     for name, d_type in zip(metadata.column_names, metadata.column_types):
         dtypes[name] = DUNE_TO_PG.get(d_type)
         if dtypes[name] is None:
-            log.warning(f"Unknown column: {d_type} - treating as JSONB")
+            log.warning("Unknown column: %s - treating as JSONB", d_type)
             unknown_columns.append(name)
             dtypes[name] = JSONB
         if d_type == "varbinary":
