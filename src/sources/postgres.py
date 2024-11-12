@@ -1,3 +1,7 @@
+"""
+Source logic for PostgreSQL.
+"""
+
 from pathlib import Path
 
 import pandas as pd

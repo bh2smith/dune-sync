@@ -1,3 +1,7 @@
+"""
+Destination logic for Dune Analytics.
+"""
+
 from dune_client.client import DuneClient
 from dune_client.models import DuneError
 from pandas import DataFrame

@@ -1,3 +1,7 @@
+"""
+Source logic for Dune Analytics.
+"""
+
 from abc import ABC
 from typing import Type, Any, Literal
 

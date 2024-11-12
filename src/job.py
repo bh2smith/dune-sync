@@ -1,3 +1,7 @@
+"""
+Job execution logic for the dune-sync package.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

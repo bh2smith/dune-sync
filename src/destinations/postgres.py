@@ -1,3 +1,7 @@
+"""
+Destination logic for PostgreSQL.
+"""
+
 from typing import Literal
 
 import sqlalchemy

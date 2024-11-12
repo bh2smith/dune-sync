@@ -1,3 +1,7 @@
+"""
+Configuration classes & loading logic for the dune-sync package.
+"""
+
 from __future__ import annotations
 
 import os
