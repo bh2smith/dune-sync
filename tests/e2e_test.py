@@ -9,7 +9,7 @@ import pandas.testing
 from dune_client.models import ResultsResponse
 from pandas import DataFrame
 from sqlalchemy import BIGINT, BOOLEAN, VARCHAR, DATE, TIMESTAMP
-from sqlalchemy.dialects.postgresql import BYTEA
+from sqlalchemy.dialects.postgresql import BYTEA, NUMERIC
 
 from src.config import RuntimeConfig
 from src.destinations.postgres import PostgresDestination
@@ -38,6 +38,7 @@ SAMPLE_DUNE_RESULTS = ResultsResponse.from_dict(
                     "hash": "0x5f0b3f5d3f15bf9943b1b6c77f69",
                     "success": True,
                     "type": "DynamicFee",
+                    "some_number": 12.001,
                 }
             ],
             "metadata": {
@@ -48,6 +49,7 @@ SAMPLE_DUNE_RESULTS = ResultsResponse.from_dict(
                     "hash",
                     "type",
                     "block_date",
+                    "some_number",
                 ],
                 "column_types": [
                     "timestamp with time zone",
@@ -56,6 +58,7 @@ SAMPLE_DUNE_RESULTS = ResultsResponse.from_dict(
                     "varbinary",
                     "varchar",
                     "date",
+                    "decimal(12, 7)",
                 ],
                 "row_count": 1,
                 "result_set_bytes": 97,
@@ -93,11 +96,16 @@ class TestEndToEnd(unittest.TestCase):
                 "hash": [b"_\x0b?]?\x15\xbf\x99C\xb1\xb6\xc7\x7fi"],
                 "success": [True],
                 "type": ["DynamicFee"],
+                "some_number": [12.001],
             }
         )
         self.assertIsNone(
             pandas.testing.assert_frame_equal(df, expected, check_dtype=True)
         )
+
+        # this will be compared separately because it maps to an instance, not a class
+        dynamic_type = types.pop("some_number")
+
         self.assertEqual(
             {
                 "block_date": DATE,
@@ -110,9 +118,13 @@ class TestEndToEnd(unittest.TestCase):
             types,
         )
 
+        self.assertTrue(isinstance(dynamic_type, NUMERIC))
+        self.assertEqual(dynamic_type.precision, 12)
+        self.assertEqual(dynamic_type.scale, 7)
+
         pg.save((df, types))
 
-        self.assertEqual(
+        self.assertListEqual(
             [
                 {
                     "block_date": datetime.date(2024, 9, 28),
@@ -121,6 +133,7 @@ class TestEndToEnd(unittest.TestCase):
                     "hash": "0x5f0b3f5d3f15bf9943b1b6c77f69",
                     "success": True,
                     "type": "DynamicFee",
+                    "some_number": 12.001,
                 }
             ],
             query_pg(pg.engine, "select * from test_table"),
