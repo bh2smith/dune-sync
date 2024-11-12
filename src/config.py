@@ -62,7 +62,6 @@ class DbRef:
         return cls(
             name=data["name"],
             type=Database.from_string(data["type"]),
-            # TODO: read env variables
             key=env.interpolate(data["key"]),
         )
 
