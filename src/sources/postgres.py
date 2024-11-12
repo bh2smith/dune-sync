@@ -1,3 +1,7 @@
+"""
+Source logic for PostgreSQL.
+"""
+
 from pathlib import Path
 
 import pandas as pd
@@ -11,6 +15,23 @@ from src.logger import log
 
 
 def _convert_bytea_to_hex(df: DataFrame) -> DataFrame:
+    """
+    Converts PostgreSQL BYTEA columns to hexadecimal string representation.
+
+    This function iterates through the columns of a DataFrame and, if a column's first entry
+    is of type `memoryview`, it assumes that column is of type BYTEA and converts each entry to a
+    hexadecimal string prefixed with '0x'.
+
+    Parameters
+    ----------
+    df : DataFrame
+        The DataFrame containing the data to be converted.
+
+    Returns
+    -------
+    DataFrame
+        The modified DataFrame with BYTEA columns converted to hexadecimal strings.
+    """
     if df.empty:
         return df
 
@@ -22,14 +43,31 @@ def _convert_bytea_to_hex(df: DataFrame) -> DataFrame:
 
 class PostgresSource(Source[DataFrame]):
     """
-    A class representing Postgres as a data source.
+    A class representing PostgreSQL as a data source for retrieving data via SQL queries.
+
+    This class connects to a PostgreSQL database using SQLAlchemy and executes a query
+    either directly from a string or by reading from a specified `.sql` file.
 
     Attributes
     ----------
-    db_url : str
-        The URL of the database connection.
+    engine : sqlalchemy.engine.Engine
+        SQLAlchemy engine instance used for connecting to the PostgreSQL database.
     query_string : str
-        The SQL query to execute.
+        The SQL query to execute, which can be directly assigned or read from a file.
+
+    Methods
+    -------
+    validate() -> bool
+        Validates the SQL query by attempting to compile it without execution.
+    fetch() -> DataFrame
+        Executes the query and returns the result as a DataFrame with any BYTEA columns
+        converted to hexadecimal.
+    is_empty(data: DataFrame) -> bool
+        Checks if the fetched data is empty.
+    _set_query_string(query_string: str) -> None
+        Sets the query string directly or from a file if the string ends with '.sql'.
+    _set_query_string_from_file() -> None
+        Reads and sets the query from a specified `.sql` file.
     """
 
     def __init__(self, db_url: str, query_string: str):
@@ -39,6 +77,19 @@ class PostgresSource(Source[DataFrame]):
         super().__init__()
 
     def validate(self) -> bool:
+        """
+        Validates the SQL query by attempting to compile it without execution.
+
+        Returns
+        -------
+        bool
+            True if the SQL query is valid; False otherwise.
+
+        Raises
+        ------
+        SQLAlchemyError
+            If the query is invalid or cannot be compiled, an error is logged and False is returned.
+        """
         try:
             # Try to compile the query without executing it
             with self.engine.connect() as connection:
@@ -49,19 +100,57 @@ class PostgresSource(Source[DataFrame]):
             return False
 
     def fetch(self) -> DataFrame:
+        """
+        Executes the SQL query and retrieves the result as a DataFrame.
+
+        Returns
+        -------
+        DataFrame
+            A DataFrame containing the query results, with any BYTEA columns
+            converted to hexadecimal format.
+        """
         df = pd.read_sql_query(self.query_string, con=self.engine)
         return _convert_bytea_to_hex(df)
 
     def is_empty(self, data: DataFrame) -> bool:
+        """
+        Checks if the provided DataFrame is empty.
+
+        Parameters
+        ----------
+        data : DataFrame
+            The DataFrame to check.
+
+        Returns
+        -------
+        bool
+            True if the DataFrame is empty, False otherwise.
+        """
         return data.empty
 
     def _set_query_string(self, query_string: str) -> None:
+        """
+        Sets the SQL query string directly or from a file if it ends with '.sql'.
+
+        Parameters
+        ----------
+        query_string : str
+            The SQL query to execute or the path to a `.sql` file containing the query.
+        """
         self.query_string = query_string
 
         if self.query_string.lower().endswith(".sql"):
             self._set_query_string_from_file()
 
     def _set_query_string_from_file(self) -> None:
+        """
+        Reads the SQL query from a `.sql` file and sets it as the query string.
+
+        Raises
+        ------
+        RuntimeError
+            If the specified `.sql` file does not exist or is not a file, an error is raised.
+        """
         sql_source = Path(self.query_string)
         if not sql_source.is_file() or not sql_source.exists():
             raise RuntimeError(

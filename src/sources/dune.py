@@ -1,3 +1,7 @@
+"""
+Source logic for Dune Analytics.
+"""
+
 from abc import ABC
 from typing import Type, Any, Literal
 
@@ -29,12 +33,45 @@ DUNE_TO_PG: dict[str, Type[Any]] = {
 def _reformat_varbinary_columns(
     df: DataFrame, varbinary_columns: list[str]
 ) -> DataFrame:
+    """
+    Reformats specified columns in a DataFrame from hexadecimal strings to bytes.
+
+    Parameters
+    ----------
+    df : DataFrame
+        The DataFrame containing columns to be reformatted.
+    varbinary_columns : list[str]
+        A list of column names in the DataFrame that should be converted from
+        hexadecimal strings to bytes.
+
+    Returns
+    -------
+    DataFrame
+        The modified DataFrame with specified columns converted to bytes.
+    """
     for col in varbinary_columns:
         df[col] = df[col].apply(lambda x: bytes.fromhex(x[2:]) if pd.notnull(x) else x)
     return df
 
 
 def dune_result_to_df(result: ExecutionResult) -> TypedDataFrame:
+    """
+    Converts a Dune query result into a DataFrame with PostgreSQL-compatible data types.
+
+    This function maps Dune's data types to PostgreSQL-compatible types and
+    reformats columns of type `varbinary` to bytes for database compatibility.
+
+    Parameters
+    ----------
+    result : ExecutionResult
+        The result of a Dune query, including metadata and row data.
+
+    Returns
+    -------
+    TypedDataFrame
+        A tuple consisting of the DataFrame with the query results and a dictionary
+        mapping column names to PostgreSQL-compatible data types.
+    """
     metadata = result.metadata
     dtypes, varbinary_columns = {}, []
     for name, d_type in zip(metadata.column_names, metadata.column_types):
@@ -50,14 +87,28 @@ def dune_result_to_df(result: ExecutionResult) -> TypedDataFrame:
 
 class DuneSource(Source[TypedDataFrame], ABC):
     """
-    A class representing Dune as a data source.
+    A class representing Dune as a data source for retrieving query results.
+
+    This class interacts with the Dune Analytics API to execute queries and fetch results
+    in a DataFrame format, with appropriate data type conversions.
 
     Attributes
     ----------
-    api_key : str
-        The API key used for accessing the Dune Analytics API.
+    client : DuneClient
+        An instance of DuneClient initialized with the API key for connecting to Dune Analytics.
     query : QueryBase
-        The query to execute.
+        The query to be executed on Dune Analytics.
+    poll_frequency : int
+        Frequency in seconds at which the query execution status is polled (default is 1 second).
+
+    Methods
+    -------
+    validate() -> bool
+        Validates the source setup (currently always returns True).
+    fetch() -> TypedDataFrame
+        Executes the Dune query and retrieves the result as a DataFrame with associated types.
+    is_empty(data: TypedDataFrame) -> bool
+        Checks if the retrieved data is empty.
     """
 
     def __init__(

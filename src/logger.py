@@ -1,3 +1,7 @@
+"""
+Logging configuration for the dune-sync package.
+"""
+
 import logging
 from os import getenv
 
