@@ -11,14 +11,26 @@ TableExistsPolicy = Literal["append", "replace"]
 
 class PostgresDestination(Destination[TypedDataFrame]):
     """
-    A class representing Postgres as a destination.
+    A class representing PostgreSQL as a destination for data storage.
+
+    This class uses SQLAlchemy to connect to a PostgreSQL database and save data
+    to a specified table, with options to handle table existence policies.
 
     Attributes
     ----------
-    db_url : str
-        The URL of the database connection.
+    engine : sqlalchemy.engine.Engine
+        SQLAlchemy engine instance for connecting to the PostgreSQL database.
     table_name : str
-        The name of the table where the data will be saved.
+        The name of the destination table in PostgreSQL where data will be saved.
+    if_exists : TableExistsPolicy
+        Policy for handling existing tables: "fail", "replace", or "append" (default is "append").
+
+    Methods
+    -------
+    validate() -> bool
+        Validates the destination setup (currently always returns True).
+    save(data: TypedDataFrame) -> None
+        Saves the provided data to the PostgreSQL table, creating or appending as specified.
     """
 
     def __init__(
@@ -30,13 +42,28 @@ class PostgresDestination(Destination[TypedDataFrame]):
         super().__init__()
 
     def validate(self) -> bool:
-        # Nothing I can think of to validate here...
+        """Validates the destination setup (currently a placeholder that returns True)."""
         return True
 
     def save(
         self,
         data: TypedDataFrame,
     ) -> None:
+        """
+        Saves the provided DataFrame to the PostgreSQL database table.
+
+        Parameters
+        ----------
+        data : TypedDataFrame
+            A tuple containing the DataFrame to save and its corresponding SQLAlchemy column types.
+
+        Raises
+        ------
+        sqlalchemy.exc.SQLAlchemyError
+            If there is an error while connecting or saving data to the PostgreSQL database.
+        Warning
+            If the DataFrame is empty, a warning is logged, and no data is saved.
+        """
         df, dtypes = data
         if df.empty:
             log.warning("DataFrame is empty. Skipping save to PostgreSQL.")

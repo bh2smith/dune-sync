@@ -1,2 +1,2 @@
 [MASTER]
-disable=fixme,missing-function-docstring,missing-module-docstring,too-few-public-methods
+disable=fixme,missing-module-docstring,too-few-public-methods

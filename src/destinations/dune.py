@@ -25,10 +25,27 @@ class DuneDestination(Destination[DataFrame]):
         super().__init__()
 
     def validate(self) -> bool:
-        # Nothing I can think of to validate here...
+        """Validates the destination setup (currently a placeholder that returns True)."""
         return True
 
     def save(self, data: DataFrame) -> None:
+        """
+        Uploads a DataFrame to Dune as a CSV.
+
+        Parameters
+        ----------
+        data : DataFrame
+            The data to be uploaded to Dune, which will be converted to CSV format.
+
+        Raises
+        ------
+        RuntimeError
+            If the upload to Dune fails.
+        DuneError
+            If there's an issue communicating with the Dune API.
+        ValueError
+            For any data processing issues prior to the upload.
+        """
         try:
             log.debug("Uploading DF to Dune...")
             result = self.client.upload_csv(self.table_name, data.to_csv(index=False))
