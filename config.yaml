@@ -44,3 +44,14 @@ jobs:
     destination:
       ref: Dune1
       table_name: dune_sync_test_table
+
+  - name: Sync Parameterized Dune Query with Multiple Types to Postgres
+    source:
+      ref: Dune1
+      query_id: 4273244
+      query_engine: medium
+      poll_frequency: 5
+    destination:
+      ref: PG1
+      table_name: app_data
+      if_exists: replace
