@@ -4,6 +4,7 @@ Source logic for Dune Analytics.
 
 import re
 from abc import ABC
+import json
 from typing import Type, Any, Literal
 
 import pandas as pd
@@ -12,7 +13,13 @@ from dune_client.models import ExecutionResult
 from dune_client.query import QueryBase
 from pandas import DataFrame
 from sqlalchemy import BIGINT, BOOLEAN, VARCHAR, DATE, TIMESTAMP
-from sqlalchemy.dialects.postgresql import BYTEA, DOUBLE_PRECISION, INTEGER, NUMERIC
+from sqlalchemy.dialects.postgresql import (
+    BYTEA,
+    DOUBLE_PRECISION,
+    INTEGER,
+    NUMERIC,
+    JSONB,
+)
 
 from src.interfaces import Source, TypedDataFrame
 from src.logger import log
@@ -77,6 +84,12 @@ def _reformat_varbinary_columns(
     return df
 
 
+def _reformat_unknown_columns(df: DataFrame, unknown_columns: list[str]) -> DataFrame:
+    for col in unknown_columns:
+        df[col] = df[col].apply(json.dumps)
+    return df
+
+
 def dune_result_to_df(result: ExecutionResult) -> TypedDataFrame:
     """
     Converts a Dune query result into a DataFrame with PostgreSQL-compatible data types.
@@ -96,7 +109,7 @@ def dune_result_to_df(result: ExecutionResult) -> TypedDataFrame:
         mapping column names to PostgreSQL-compatible data types.
     """
     metadata = result.metadata
-    dtypes, varbinary_columns = {}, []
+    dtypes, varbinary_columns, unknown_columns = {}, [], []
     for name, d_type in zip(metadata.column_names, metadata.column_types):
         if re.match(r"decimal\((\d+),\s*(\d+)\)", d_type):
             precision, scale = _parse_decimal_type(d_type)
@@ -108,12 +121,19 @@ def dune_result_to_df(result: ExecutionResult) -> TypedDataFrame:
                 DUNE_TO_PG[d_type] = NUMERIC(precision, scale)
 
         dtypes[name] = DUNE_TO_PG[d_type]
+
+        if dtypes[name] is None:
+            log.warning("Unknown column: %s - treating as JSONB", d_type)
+            unknown_columns.append(name)
+            dtypes[name] = JSONB
+
         if d_type == "varbinary":
             varbinary_columns.append(name)
 
     df = pd.DataFrame(result.rows)
     # escape bytes
     df = _reformat_varbinary_columns(df, varbinary_columns)
+    df = _reformat_unknown_columns(df, unknown_columns)
     return df, dtypes
 
 
