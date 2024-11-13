@@ -2,6 +2,7 @@
 Source logic for Dune Analytics.
 """
 
+import re
 from abc import ABC
 import json
 from typing import Type, Any, Literal
@@ -11,13 +12,19 @@ from dune_client.client import DuneClient
 from dune_client.models import ExecutionResult
 from dune_client.query import QueryBase
 from pandas import DataFrame
-from sqlalchemy import BIGINT, BOOLEAN, VARCHAR, DATE, TIMESTAMP, NUMERIC
-from sqlalchemy.dialects.postgresql import BYTEA, DOUBLE_PRECISION, INTEGER, JSONB
+from sqlalchemy import BIGINT, BOOLEAN, VARCHAR, DATE, TIMESTAMP
+from sqlalchemy.dialects.postgresql import (
+    BYTEA,
+    DOUBLE_PRECISION,
+    INTEGER,
+    NUMERIC,
+    JSONB,
+)
 
 from src.interfaces import Source, TypedDataFrame
 from src.logger import log
 
-DUNE_TO_PG: dict[str, Type[Any]] = {
+DUNE_TO_PG: dict[str, Type[Any] | NUMERIC] = {
     "bigint": BIGINT,
     "integer": INTEGER,
     "varbinary": BYTEA,
@@ -25,12 +32,32 @@ DUNE_TO_PG: dict[str, Type[Any]] = {
     "boolean": BOOLEAN,
     "varchar": VARCHAR,
     "double": DOUBLE_PRECISION,
+    "real": DOUBLE_PRECISION,
     "timestamp with time zone": TIMESTAMP,
     "uint256": NUMERIC,
-    # TODO: parse these innards more dynamically.
-    # "decimal(38, 0)": NUMERIC(38, 0),
-    # "array(varbinary)": ARRAY(BYTEA),
 }
+
+
+def _parse_decimal_type(type_str: str) -> tuple[int, int] | tuple[None, None]:
+    """
+    Extract precision and scale from Dune's decimal type string like 'decimal(38, 0)'
+
+    Parameters
+    ----------
+    type_str : str
+        The Dune type string returned from the API, like `decimal(38, 0)`
+
+    Returns
+    -------
+    tuple[int, int]
+        Precision and scale as integers, or two Nones if parsing failed
+    """
+    match = re.match(r"decimal\((\d+),\s*(\d+)\)", type_str)
+    if not match:
+        return None, None
+
+    precision, scale = match.groups()
+    return int(precision), int(scale)
 
 
 def _reformat_varbinary_columns(
@@ -84,11 +111,22 @@ def dune_result_to_df(result: ExecutionResult) -> TypedDataFrame:
     metadata = result.metadata
     dtypes, varbinary_columns, unknown_columns = {}, [], []
     for name, d_type in zip(metadata.column_names, metadata.column_types):
-        dtypes[name] = DUNE_TO_PG.get(d_type)
+        if re.match(r"decimal\((\d+),\s*(\d+)\)", d_type):
+            precision, scale = _parse_decimal_type(d_type)
+            if not precision or not scale:
+                log.error(
+                    "Failed to parse precision and scale from Dune result: %s", name
+                )
+            else:
+                DUNE_TO_PG[d_type] = NUMERIC(precision, scale)
+
+        dtypes[name] = DUNE_TO_PG[d_type]
+
         if dtypes[name] is None:
             log.warning("Unknown column: %s - treating as JSONB", d_type)
             unknown_columns.append(name)
             dtypes[name] = JSONB
+
         if d_type == "varbinary":
             varbinary_columns.append(name)
 
