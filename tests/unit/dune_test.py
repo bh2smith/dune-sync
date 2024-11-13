@@ -21,9 +21,6 @@ class DuneSourceTest(unittest.TestCase):
         for valid in valid_decimals:
             with self.subTest(msg=valid):
                 dune_result, expected_result = valid[0], valid[1]
-                self.assertNotEqual(
-                    tuple([None, None]), _parse_decimal_type(dune_result)
-                )
                 self.assertEqual(expected_result, _parse_decimal_type(dune_result))
 
         for invalid in invalid_decimals:
