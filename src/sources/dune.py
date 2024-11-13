@@ -4,7 +4,7 @@ Source logic for Dune Analytics.
 
 import re
 from abc import ABC
-from typing import Type, Any, Literal, Union
+from typing import Type, Any, Literal
 
 import pandas as pd
 from dune_client.client import DuneClient
@@ -17,7 +17,7 @@ from sqlalchemy.dialects.postgresql import BYTEA, DOUBLE_PRECISION, INTEGER, NUM
 from src.interfaces import Source, TypedDataFrame
 from src.logger import log
 
-DUNE_TO_PG: dict[str, Union[Type[Any], NUMERIC]] = {
+DUNE_TO_PG: dict[str, Type[Any] | NUMERIC] = {
     "bigint": BIGINT,
     "integer": INTEGER,
     "varbinary": BYTEA,
