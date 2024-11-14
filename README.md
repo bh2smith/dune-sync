@@ -85,7 +85,7 @@ Note that postgres queries can also be file paths (they would also need to be mo
 
 ## Local Development
 
-Fill out the empty fields in [Sample Env](.env.sample) (`DUNE_API_KEY` and `DB_URL`)
+Fill out the empty fields in [Sample Env](.env.sample) (e.g. `DUNE_API_KEY` and `DB_URL`)
 
 ```shell
 docker-compose up -d # Starts postgres container (in the background)
