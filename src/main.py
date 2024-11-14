@@ -16,6 +16,9 @@ Environment Variables:
     Required environment variables depend on the configured sources and destinations.
     Typically includes database connection strings and API keys.
 """
+import argparse
+from pathlib import Path
+
 from src import root_path
 from src.config import RuntimeConfig
 from src.logger import log
@@ -26,16 +29,28 @@ def main() -> None:
     Main function that loads configuration and executes jobs sequentially.
 
     The function:
-    1. Loads the configuration from config.yaml
-    2. Executes each configured job
-    3. Logs the completion of each job
+    1. Parses command line arguments
+    2. Loads the configuration from the specified config file (defaults to config.yaml)
+    3. Executes each configured job
+    4. Logs the completion of each job
 
     Raises:
-        FileNotFoundError: If config.yaml is not found
-        yaml.YAMLError: If config.yaml is invalid
+        FileNotFoundError: If config file is not found
+        yaml.YAMLError: If config file is invalid
         Various exceptions depending on job configuration and execution
     """
-    config = RuntimeConfig.load_from_yaml(root_path.parent / "config.yaml")
+    parser = argparse.ArgumentParser(
+        description="Dune Sync - Data synchronization tool"
+    )
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=root_path.parent / "config.yaml",
+        help="Path to configuration file (default: config.yaml)",
+    )
+    args = parser.parse_args()
+
+    config = RuntimeConfig.load_from_yaml(args.config)
     # TODO: Async job execution https://github.com/bh2smith/dune-sync/issues/20
     for job in config.jobs:
         job.run()
