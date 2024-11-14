@@ -5,57 +5,54 @@
 ### Create a configuration file
 
 Configuration is provided in a single YAML file. Refer to the existing `config.yaml` for an overview.
-In general, it should contain a top-level key called `jobs`, whose members should be YAML dictionaries describing the
-job to run.
+The configuration file consists of three main sections:
+- `sources`: Defines available data sources
+- `destinations`: Defines available data destinations
+- `jobs`: Defines synchronization jobs that connect sources to destinations
 
-#### Job parameters
+#### Source Definitions
 
-- `name`: An optional human-readable name for the job. Note that uniqueness is not enforced.
-- `source`: Definition of a data store to fetch data from. Exact parameter depends on source type, see **Sources**
-  further in this section.
-- `destination`: Definition of a data store to store data into. Exact parameter depends on source type, see *
-  *Destinations** further in this section.
+Sources are defined as a list of configurations, each containing:
+- `name`: String. A unique identifier for referencing this source in jobs
+- `type`: String. Must be either `dune` or `postgres`
+- `key`: String. Connection details, supports environment variable templating using `${VAR_NAME}` syntax such as `${DB_URL}` or `${DUNE_API_KEY}` ([see environment setup](#define-environment))
 
-#### Sources
+#### Destination Definitions
 
-Currently supported sources are Dune and PostgreSQL. Description of required parameters follows.
+Destinations are defined similarly to sources:
+- `name`: String. A unique identifier for referencing this destination in jobs
+- `type`: String. Must be either `dune` or `postgres`
+- `key`: String. Connection details, supports environment variable templating using `${VAR_NAME}` syntax
 
-#### Dune
+#### Job Parameters
 
-- `ref`: String. Must be exactly `dune`
-- `query_id`: Integer. ID of an existing Dune Query to execute and fetch results from.
-- `query_engine`: Optional String. If specified must be one of exactly `medium` or `large`. Defaults to `medium`.
-- `poll_frequency`: Optional Integer. Determines how often, in seconds, to poll Dune for results after running the given query ID. Defaults to `1`.
-- `parameters`: Optional Dune Query parameters.
-    - `name`: String. Name of parameter
-    - `type`: String. Type of parameter. Must be one of: "text", "number", "datetime", "enum"
-    - `value`: Any. Value to send for the defined parameter
+Each job in the `jobs` list should contain:
+- `name`: Optional String. A human-readable name for the job
+- `source`: Definition of which source to use and how to fetch data
+- `destination`: Definition of which destination to use and how to store data
 
-#### Postgres
+##### Source Configuration
 
-- `ref`: String. Must be exactly `postgres`
-- `query_string`: String. Query to run against a Postgres server in order to fetch results and submit them to a
-  Destination.
-  If instead of an SQL query it's a path that ends in `.sql`, read the `query_string` from the specified file instead.
-  File must be relative to `main.py` or be specified with an absolute path.
+For Dune sources (`ref: Dune1`):
+- `query_id`: Integer. ID of an existing Dune Query to execute
+- `query_engine`: Optional String. Either `medium` or `large`. Defaults to `medium`
+- `poll_frequency`: Optional Integer. Seconds between result polling. Defaults to `1`.
+- `parameters`: Optional list of Dune Query parameters
+    - `name`: String. Parameter name
+    - `type`: String. Must be one of: `TEXT`, `NUMBER`, `DATE`, `ENUM`
+    - `value`: Any. Value for the parameter
 
-#### Destinations
+For Postgres sources (`ref: Postgres`):
+- `query_string`: String. SQL query or path to .sql file (relative to `main.py` or absolute)
 
-Currently supported destinations are Dune and PostgreSQL. Description of required parameters follows.
+##### Destination Configuration
 
-#### Dune
+For Dune destinations (`ref: Dune`):
+- `table_name`: String. Name of Dune table to update
 
-- `ref`: String. Must be exactly `dune`
-- `table_name`: String. Name of Dune table to update.
-
-#### Postgres
-
-- `ref`: String. Must be exactly `postgres`
-- `table_name`: String. Name of table in the configured Postgres server to insert or append into. Does not have to
-  exist, will be created if it doesn't.
-- `if_exists`: String. One of "fail", "replace", "append". "replace" truncates the table if it exists, then stores the
-  results.
-  "append" inserts new rows into the table if it already exists and contains data. "fail" causes the job to fail.
+For Postgres destinations (`ref: Postgres`):
+- `table_name`: String. Name of table to insert/append into
+- `if_exists`: String. One of `fail`, `replace`, `append`
 
 ### Define environment
 
@@ -67,23 +64,39 @@ Copy `.env.sample` to `.env` and fill out the two required variables
 
 ### Mount the config and .env files into the container and run the script
 
+You can download the image from GitHub Container Registry:
+
 ```shell
-docker build -t dune-sync .
-docker run --rm -v "$(pwd)/config.yaml:/app/config.yaml" --env-file .env dune-sync
+docker pull ghcr.io/bh2smith/dune-sync:latest
 ```
+
+Or build it yourself:
+
+```shell
+export IMAGE_NAME=dune-sync # (or ghcr.io image above)
+docker build -t ${IMAGE_NAME} .
+
+# Base docker command (using config.yaml mounted at /app/config.yaml)
+docker run --rm \
+    -v "$(pwd)/config.yaml:/app/config.yaml" \
+    --env-file .env \
+    ${IMAGE_NAME}
+
+# Optional additions:
+# - Mount custom config file (requires --config flag)
+    -v "$(pwd)/my-config.yaml:/app/my-config.yaml" \
+# - Mount queries directory (if using SQL file paths)
+    -v "$(pwd)/queries:/app/queries" \
+    --config /app/my-config.yaml
+```
+
+Note that postgres queries can also be file paths (they would also need to be mounted into the container).
 
 ## Local Development
 
-Fill out the empty fields in [Sample Env](.env.sample) (`DUNE_API_KEY` and `DB_URL`)
+Fill out the empty fields in [Sample Env](.env.sample) (e.g. `DUNE_API_KEY` and `DB_URL`)
 
 ```shell
-docker-compose up -d
-python -m src.main
-```
-
-### Docker
-
-```shell
-docker build -t dune-sync .
-docker run --rm -v "$(pwd)/config.yaml:/app/config.yaml" --env-file .env dune-sync
+docker-compose up -d # Starts postgres container (in the background)
+python -m src.main --config config.yaml
 ```
