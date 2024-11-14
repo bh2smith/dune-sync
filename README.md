@@ -76,18 +76,18 @@ Or build it yourself:
 export IMAGE_NAME=dune-sync # (or ghcr.io image above)
 docker build -t ${IMAGE_NAME} .
 
-# Using default config.yaml
+# Base docker command (using config.yaml mounted at /app/config.yaml)
 docker run --rm \
     -v "$(pwd)/config.yaml:/app/config.yaml" \
     --env-file .env \
     ${IMAGE_NAME}
 
-# Using custom config path
-docker run --rm \
-    -v "$(pwd)/my-config.yaml:/app/config.yaml" \
+# Optional additions:
+# - Mount custom config file (requires --config flag)
+    -v "$(pwd)/my-config.yaml:/app/my-config.yaml" \
+# - Mount queries directory (if using SQL file paths)
     -v "$(pwd)/queries:/app/queries" \
-    --env-file .env \
-    ${IMAGE_NAME} --config /app/config.yaml
+    --config /app/my-config.yaml
 ```
 
 Note that postgres queries can also be file paths (they would also need to be mounted into the container).
