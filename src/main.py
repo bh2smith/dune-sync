@@ -7,10 +7,13 @@ sequentially. Each job typically consists of:
 1. Extracting data from a source (Dune Analytics or Postgres)
 2. Loading the data into a destination (Dune Analytics or Postgres)
 
-The configuration is loaded from a YAML file (config.yaml) in the project root.
+The configuration is loaded from a YAML file (defaults to config.yaml in the project root).
 
 Usage:
-    python -m src.main
+    python -m src.main [--config PATH]
+
+Arguments:
+    --config PATH    Optional path to configuration file (default: config.yaml)
 
 Environment Variables:
     Required environment variables depend on the configured sources and destinations.
