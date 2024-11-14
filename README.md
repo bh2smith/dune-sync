@@ -73,12 +73,21 @@ docker pull ghcr.io/bh2smith/dune-sync:latest
 Or build it yourself:
 
 ```shell
-docker build -t dune-sync .
+export IMAGE_NAME=dune-sync # (or ghcr.io image above)
+docker build -t ${IMAGE_NAME} .
+
 # Using default config.yaml
-docker run --rm -v "$(pwd)/config.yaml:/app/config.yaml" --env-file .env dune-sync
+docker run --rm \
+    -v "$(pwd)/config.yaml:/app/config.yaml" \
+    --env-file .env \
+    ${IMAGE_NAME}
 
 # Using custom config path
-docker run --rm -v "$(pwd)/my-config.yaml:/app/config.yaml" -v "$(pwd)/queries:/app/queries" --env-file .env dune-sync --config /app/config.yaml
+docker run --rm \
+    -v "$(pwd)/my-config.yaml:/app/config.yaml" \
+    -v "$(pwd)/queries:/app/queries" \
+    --env-file .env \
+    ${IMAGE_NAME} --config /app/config.yaml
 ```
 
 Note that postgres queries can also be file paths (they would also need to be mounted into the container).
