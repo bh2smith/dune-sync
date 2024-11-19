@@ -39,7 +39,6 @@ jobs:
   - name: Table Independent Query to Dune
     source:
       ref: PG1
-      if_exists: append
       query_string: "SELECT 1 as number, '\\x1234'::bytea as my_bytes;"
     destination:
       ref: Dune1
