@@ -158,18 +158,18 @@ def dune_result_to_df(result: ExecutionResult) -> TypedDataFrame:
     """
     metadata = result.metadata
     dtypes = {}
-    all_varbinary_cols = []
-    all_unknown_cols = []
+    varbinary_cols = []
+    unknown_cols = []
 
     for name, d_type in zip(metadata.column_names, metadata.column_types):
-        pg_type, varbinary_cols, unknown_cols = _handle_column_types(name, d_type)
+        pg_type, _varbinary_cols, _unknown_cols = _handle_column_types(name, d_type)
         dtypes[name] = pg_type
-        all_varbinary_cols.extend(varbinary_cols)
-        all_unknown_cols.extend(unknown_cols)
+        varbinary_cols.extend(_varbinary_cols)
+        unknown_cols.extend(_unknown_cols)
 
     df = pd.DataFrame(result.rows)
-    df = _reformat_varbinary_columns(df, all_varbinary_cols)
-    df = _reformat_unknown_columns(df, all_unknown_cols)
+    df = _reformat_varbinary_columns(df, varbinary_cols)
+    df = _reformat_unknown_columns(df, unknown_cols)
 
     return df, dtypes
 
