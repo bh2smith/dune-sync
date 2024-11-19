@@ -20,6 +20,8 @@ Environment Variables:
     Typically includes database connection strings and API keys.
 """
 import argparse
+import asyncio
+
 from pathlib import Path
 
 from src import root_path
@@ -27,7 +29,7 @@ from src.config import RuntimeConfig
 from src.logger import log
 
 
-def main() -> None:
+async def main() -> None:
     """
     Main function that loads configuration and executes jobs sequentially.
 
@@ -54,11 +56,12 @@ def main() -> None:
     args = parser.parse_args()
 
     config = RuntimeConfig.load_from_yaml(args.config)
-    # TODO: Async job execution https://github.com/bh2smith/dune-sync/issues/20
-    for job in config.jobs:
-        job.run()
+
+    tasks = [job.run() for job in config.jobs]
+    for job, completed_task in zip(config.jobs, asyncio.as_completed(tasks)):
+        await completed_task
         log.info("Job completed: %s", job)
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

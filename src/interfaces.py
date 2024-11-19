@@ -30,7 +30,7 @@ class Source(Validate, Generic[T]):
     """Abstract base class for data sources"""
 
     @abstractmethod
-    def fetch(self) -> T:
+    async def fetch(self) -> T:
         """Fetch data from the source"""
 
     @abstractmethod

@@ -139,10 +139,10 @@ class TestEndToEnd(unittest.TestCase):
             query_pg(pg.engine, "select * from test_table"),
         )
 
-    @patch("src.sources.dune.DuneClient")
+    @patch("src.sources.dune.AsyncDuneClient")
     @patch("src.config.load_dotenv")
     @patch.dict(os.environ, {"DUNE_API_KEY": "test_key", "DB_URL": DB_URL})
-    def test_dune_to_local_job_run(self, mock_env, mock_dune_client):
+    async def test_dune_to_local_job_run(self, mock_env, mock_dune_client):
         good_client = MagicMock(name="Mock Dune client that returns a result")
         good_client.run_query.return_value = SAMPLE_DUNE_RESULTS
 
@@ -152,7 +152,7 @@ class TestEndToEnd(unittest.TestCase):
         # everything is okay
         mock_dune_client.return_value = good_client
         conf = RuntimeConfig.load_from_yaml(config_root / "dune_to_postgres.yaml")
-        conf.jobs[0].run()
+        await conf.jobs[0].run()
 
         mock_dune_client.reset_mock()
 

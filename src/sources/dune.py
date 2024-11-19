@@ -8,7 +8,7 @@ import json
 from typing import Type, Any, Literal
 
 import pandas as pd
-from dune_client.client import DuneClient
+from dune_client.client_async import AsyncDuneClient
 from dune_client.models import ExecutionResult
 from dune_client.query import QueryBase
 from pandas import DataFrame
@@ -172,18 +172,21 @@ class DuneSource(Source[TypedDataFrame], ABC):
     ) -> None:
         self.query = query
         self.poll_frequency = poll_frequency
-        self.client = DuneClient(api_key, performance=query_engine)
+        self.client = AsyncDuneClient(api_key, performance=query_engine)
         super().__init__()
 
     def validate(self) -> bool:
         # Nothing I can think of to validate here...
         return True
 
-    def fetch(self) -> TypedDataFrame:
-        response = self.client.run_query(
+    async def fetch(self) -> TypedDataFrame:
+        # TODO(dune-client): Update Async Dune Client with "run_query" method.
+        await self.client.connect()
+        response = await self.client.refresh(
             query=self.query,
             ping_frequency=self.poll_frequency,
         )
+        await self.client.disconnect()
         if response.result is None:
             raise ValueError("Query execution failed!")
         return dune_result_to_df(response.result)

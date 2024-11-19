@@ -2,6 +2,8 @@
 Source logic for PostgreSQL.
 """
 
+import asyncio
+
 from pathlib import Path
 
 import pandas as pd
@@ -99,7 +101,7 @@ class PostgresSource(Source[DataFrame]):
             log.error("Invalid SQL query: %s", str(e))
             return False
 
-    def fetch(self) -> DataFrame:
+    async def fetch(self) -> DataFrame:
         """
         Executes the SQL query and retrieves the result as a DataFrame.
 
@@ -109,7 +111,17 @@ class PostgresSource(Source[DataFrame]):
             A DataFrame containing the query results, with any BYTEA columns
             converted to hexadecimal format.
         """
-        df = pd.read_sql_query(self.query_string, con=self.engine)
+        # Using asyncpg or similar async database driver would be better
+        # This is a temporary solution using run_in_executor
+
+        loop = asyncio.get_running_loop()
+        # consider using an async database driver like asyncpg instead
+        # of SQLAlchemy's synchronous interface.
+        # The current solution using run_in_executor is a workaround
+        # that moves the blocking operation to a thread pool.
+        df = await loop.run_in_executor(
+            None, lambda: pd.read_sql_query(self.query_string, con=self.engine)
+        )
         return _convert_bytea_to_hex(df)
 
     def is_empty(self, data: DataFrame) -> bool:
