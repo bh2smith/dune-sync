@@ -2,10 +2,10 @@
 Source logic for Dune Analytics.
 """
 
+import json
 import re
 from abc import ABC
-import json
-from typing import Type, Any, Literal
+from typing import Type, Any, Literal, List, Tuple
 
 import pandas as pd
 from dune_client.client import DuneClient
@@ -90,6 +90,54 @@ def _reformat_unknown_columns(df: DataFrame, unknown_columns: list[str]) -> Data
     return df
 
 
+def _handle_column_types(
+    name: str,
+    d_type: str,
+) -> Tuple[Any, List[str], List[str]]:
+    """
+    Process a single column type and handle special cases.
+
+    Parameters
+    ----------
+    name : str
+        Column name
+    d_type : str
+        Dune data type
+
+    Returns
+    -------
+    Tuple[Type[Any], List[str], List[str]]
+        Returns a tuple containing:
+        - The PostgreSQL type for this column
+        - Lists of column names requiring special treatment (varbinary and unknown)
+    """
+    varbinary_cols = []
+    unknown_cols = []
+
+    # Handle decimal types
+    if re.match(r"decimal\((\d+),\s*(\d+)\)", d_type):
+        precision, scale = _parse_decimal_type(d_type)
+        if precision and scale:
+            DUNE_TO_PG[d_type] = NUMERIC(precision, scale)
+        else:
+            log.error("Failed to parse precision and scale from Dune result: %s", name)
+
+    # Get the PostgreSQL type
+    pg_type = DUNE_TO_PG.get(d_type)
+
+    # Handle unknown types
+    if pg_type is None:
+        log.warning("Unknown column: %s - treating as JSONB", d_type)
+        unknown_cols.append(name)
+        pg_type = JSONB
+
+    # Track varbinary columns
+    if d_type == "varbinary":
+        varbinary_cols.append(name)
+
+    return pg_type, varbinary_cols, unknown_cols
+
+
 def dune_result_to_df(result: ExecutionResult) -> TypedDataFrame:
     """
     Converts a Dune query result into a DataFrame with PostgreSQL-compatible data types.
@@ -109,31 +157,20 @@ def dune_result_to_df(result: ExecutionResult) -> TypedDataFrame:
         mapping column names to PostgreSQL-compatible data types.
     """
     metadata = result.metadata
-    dtypes, varbinary_columns, unknown_columns = {}, [], []
+    dtypes = {}
+    all_varbinary_cols = []
+    all_unknown_cols = []
+
     for name, d_type in zip(metadata.column_names, metadata.column_types):
-        if re.match(r"decimal\((\d+),\s*(\d+)\)", d_type):
-            precision, scale = _parse_decimal_type(d_type)
-            if not precision or not scale:
-                log.error(
-                    "Failed to parse precision and scale from Dune result: %s", name
-                )
-            else:
-                DUNE_TO_PG[d_type] = NUMERIC(precision, scale)
-
-        dtypes[name] = DUNE_TO_PG[d_type]
-
-        if dtypes[name] is None:
-            log.warning("Unknown column: %s - treating as JSONB", d_type)
-            unknown_columns.append(name)
-            dtypes[name] = JSONB
-
-        if d_type == "varbinary":
-            varbinary_columns.append(name)
+        pg_type, varbinary_cols, unknown_cols = _handle_column_types(name, d_type)
+        dtypes[name] = pg_type
+        all_varbinary_cols.extend(varbinary_cols)
+        all_unknown_cols.extend(unknown_cols)
 
     df = pd.DataFrame(result.rows)
-    # escape bytes
-    df = _reformat_varbinary_columns(df, varbinary_columns)
-    df = _reformat_unknown_columns(df, unknown_columns)
+    df = _reformat_varbinary_columns(df, all_varbinary_cols)
+    df = _reformat_unknown_columns(df, all_unknown_cols)
+
     return df, dtypes
 
 
