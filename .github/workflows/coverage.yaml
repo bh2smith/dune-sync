@@ -29,7 +29,7 @@ jobs:
       - name: Install Requirements
         run: pip install -r requirements/dev.txt
       - name: Run tests with coverage
-        run: pytest --cov=src --cov-report=xml --cov-fail-under=80
+        run: pytest --cov=src --cov-report=html --cov-fail-under=80
         # Environment variables used by the `pg_client.py`
         env:
           DB_URL: postgresql://postgres:postgres@localhost:5432/postgres
