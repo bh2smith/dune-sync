@@ -35,6 +35,35 @@ class TestEnv(unittest.TestCase):
     @patch(
         "src.config.load_dotenv"
     )  # Mock load_dotenv to prevent loading the actual .env file
+    @patch.dict(os.environ, {"API_KEY": "F00B4R", "MYVAR": "42"}, clear=True)
+    def test_env_interpolate(self, mock_load_dotenv):
+        self.assertEqual(42, Env.interpolate(42))
+        self.assertIs(int, type(Env.interpolate(42)))
+
+        self.assertEqual("42", Env.interpolate("$MYVAR"))
+        self.assertIs(str, type(Env.interpolate("$MYVAR")))
+
+        self.assertEqual("F00B4R", Env.interpolate("$API_KEY"))
+        self.assertEqual("F00B4R", Env.interpolate("${API_KEY}"))
+
+        with self.assertRaises(KeyError) as exc:
+            Env.interpolate("$MISSINGVAR")
+
+        self.assertEqual(
+            "Environment variable 'MISSINGVAR' not found. ", exc.exception.args[0]
+        )
+
+        with self.assertRaises(KeyError) as exc:
+            Env.interpolate("${OTHERMISSINGVAR}")
+
+            self.assertEqual(
+                "Environment variable 'OTHERMISSINGVAR' not found. ",
+                exc.exception.args[0],
+            )
+
+    @patch(
+        "src.config.load_dotenv"
+    )  # Mock load_dotenv to prevent loading the actual .env file
     @patch.dict(os.environ, {"DUNE_API_KEY": "test_key"}, clear=True)
     def test_load_env_missing_db_url(self, mock_load_dotenv):
         with self.assertRaises(RuntimeError) as context:

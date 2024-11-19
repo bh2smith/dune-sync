@@ -2,6 +2,7 @@ import csv
 import datetime
 import os
 import unittest
+from logging import WARNING
 from os import getenv
 from unittest.mock import patch, MagicMock
 
@@ -67,6 +68,33 @@ SAMPLE_DUNE_RESULTS = ResultsResponse.from_dict(
                 "datapoint_count": 6,
                 "pending_time_millis": 352,
                 "execution_time_millis": 145,
+            },
+        },
+    }
+)
+
+SAMPLE_DUNE_RESULTS_NO_ROWS = ResultsResponse.from_dict(
+    {
+        "execution_id": "01JD1K09KR02BEERMNHEHD943Y",
+        "query_id": 4300766,
+        "is_execution_finished": True,
+        "state": "QUERY_STATE_COMPLETED",
+        "submitted_at": "2024-11-19T06:50:49.337531Z",
+        "expires_at": "2025-02-17T06:50:49.785175Z",
+        "execution_started_at": "2024-11-19T06:50:49.673167Z",
+        "execution_ended_at": "2024-11-19T06:50:49.785173Z",
+        "result": {
+            "rows": [],
+            "metadata": {
+                "column_names": ["index"],
+                "column_types": ["bigint"],
+                "row_count": 0,
+                "result_set_bytes": 0,
+                "total_row_count": 0,
+                "total_result_set_bytes": 0,
+                "datapoint_count": 0,
+                "pending_time_millis": 335,
+                "execution_time_millis": 112,
             },
         },
     }
@@ -149,6 +177,11 @@ class TestEndToEnd(unittest.TestCase):
         bad_client_returned_none = MagicMock(name="Mock Dune client that returns None")
         bad_client_returned_none.run_query.return_value.result = None
 
+        empty_result_client = MagicMock(
+            name="Mock Dune client that returns an empty df"
+        )
+        empty_result_client.run_query.return_value = SAMPLE_DUNE_RESULTS_NO_ROWS
+
         # everything is okay
         mock_dune_client.return_value = good_client
         conf = RuntimeConfig.load_from_yaml(config_root / "dune_to_postgres.yaml")
@@ -161,3 +194,12 @@ class TestEndToEnd(unittest.TestCase):
         conf = RuntimeConfig.load_from_yaml(config_root / "dune_to_postgres.yaml")
         with self.assertRaises(ValueError):
             conf.jobs[0].run()
+
+        # Dune returned an empty result
+        mock_dune_client.reset_mock()
+        mock_dune_client.return_value = empty_result_client
+        conf = RuntimeConfig.load_from_yaml(config_root / "dune_to_postgres.yaml")
+        with self.assertLogs(level=WARNING) as logs:
+            conf.jobs[0].run()
+
+        self.assertIn("No Query results found! Skipping write", logs.output[0])

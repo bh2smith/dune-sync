@@ -170,7 +170,11 @@ def parse_query_parameters(params: list[dict[str, Any]]) -> list[QueryParameter]
             query_params.append(QueryParameter.enum_type(name, value))
         else:
             # Can't happen.
-            raise ValueError(f"Unknown parameter type: {param['type']}")
+            # this code is actually unreachable because the case it handles
+            # causes an exception to be thrown earlier, in ParameterType.from_string()
+            raise ValueError(
+                f"Unknown parameter type: {param['type']}"
+            )  # pragma: no cover
 
     return query_params
 
