@@ -61,7 +61,6 @@ class DuneSourceTest(unittest.TestCase):
             "src.sources.dune._parse_decimal_type"
         ) as _mock_decimal_type, self.assertLogs(level=ERROR) as logs:
             _mock_decimal_type.return_value = tuple([None, None])
-            _handle_column_types("dec_col", "decimal(12, 2222)")
             self.assertEqual(
                 tuple([JSONB, [], ["dec_col"]]),
                 _handle_column_types("dec_col", "decimal(12, 2222)"),
