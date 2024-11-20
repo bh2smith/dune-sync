@@ -63,7 +63,7 @@ class Job:
     source: Source[Any]
     destination: Destination[Any]
 
-    def run(self) -> None:
+    async def run(self) -> None:
         """
         Execute the job by fetching data from the source and saving it to the destination.
 
@@ -76,7 +76,7 @@ class Job:
         Note:
             No exception is raised for empty result sets, only a warning is logged.
         """
-        df = self.source.fetch()
+        df = await self.source.fetch()
         if not self.source.is_empty(df):
             self.destination.save(df)
         else:
