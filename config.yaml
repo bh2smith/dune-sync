@@ -1,50 +1,56 @@
 sources:
-  - name: Dune
+  - name: Dune1
     type: dune
     key: ${DUNE_API_KEY}
-  - name: PG
+  - name: PG1
     type: postgres
-    key: ${READONLY_DB}
+    key: ${DB_URL}
 
 destinations:
-  - name: Dune
+  - name: Dune1
     type: dune
     key: ${DUNE_API_KEY}
-  - name: PG
+  - name: PG1
     type: postgres
     key: ${DB_URL}
 
 jobs:
-  # - name: Dune2Pg
-  #   source:
-  #     ref: Dune
-  #     query_id: 4232873
-  #     query_engine: medium
-  #     poll_frequency: 5
-  #     parameters:
-  #       - name: blockchain
-  #         value: ethereum
-  #         type: TEXT
-  #   destination:
-  #     ref: PG
-  #     table_name: results_4232873
-  #     if_exists: replace
-
-  - name: Pg2Dune
+  - name: Sync Parameterized Dune Query with Multiple Types to Postgres
     source:
-      ref: PG
-      query_string: "select * from orders order by creation_timestamp desc limit 1"
+      ref: Dune1
+      query_id: 4238114
+      query_engine: medium
+      poll_frequency: 5
+      parameters:
+        - name: blockchain
+          value: gnosis
+          type: ENUM
+        - name: blocktime
+          value: "2024-09-01 00:00:00"
+          type: DATE
+        - name: result_limit
+          value: "10"
+          type: NUMBER
     destination:
-      ref: Dune
-      table_name: dune_sync_test_felix
+      ref: PG1
+      table_name: results_4238114
+      if_exists: replace
 
-  # - name: Sync Parameterized Dune Query with Multiple Types to Postgres
-  #   source:
-  #     ref: Dune
-  #     query_id: 4273244
-  #     query_engine: medium
-  #     poll_frequency: 5
-  #   destination:
-  #     ref: PG
-  #     table_name: app_data
-  #     if_exists: replace
+  - name: Table Independent Query to Dune
+    source:
+      ref: PG1
+      query_string: "SELECT 1 as number, '\\x1234'::bytea as my_bytes;"
+    destination:
+      ref: Dune1
+      table_name: dune_sync_test_table
+
+  - name: Sync Parameterized Dune Query with Multiple Types to Postgres
+    source:
+      ref: Dune1
+      query_id: 4273244
+      query_engine: medium
+      poll_frequency: 5
+    destination:
+      ref: PG1
+      table_name: app_data
+      if_exists: replace
