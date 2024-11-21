@@ -4,3 +4,4 @@ sqlalchemy
 python-dotenv
 psycopg2-binary
 tomli
+pyyaml
