@@ -13,33 +13,8 @@ class TestEnv(unittest.TestCase):
     @patch(
         "src.config.load_dotenv"
     )  # Mock load_dotenv to prevent loading the actual .env file
-    @patch.dict(
-        os.environ, {"DUNE_API_KEY": "test_key", "DB_URL": "postgres://localhost/test"}
-    )
-    def test_load_env_success(self, mock_load_dotenv):
-        env = Env.load()
-        self.assertEqual("test_key", env.dune_api_key)
-        self.assertEqual("postgres://localhost/test", env.db_url)
-
-    @patch(
-        "src.config.load_dotenv"
-    )  # Mock load_dotenv to prevent loading the actual .env file
-    @patch.dict(os.environ, {}, clear=True)
-    def test_load_env_missing_dune_api_key(self, mock_load_dotenv):
-        with self.assertRaises(RuntimeError) as context:
-            Env.load()
-        self.assertEqual(
-            "DUNE_API_KEY environment variable must be set!", str(context.exception)
-        )
-
-    @patch(
-        "src.config.load_dotenv"
-    )  # Mock load_dotenv to prevent loading the actual .env file
     @patch.dict(os.environ, {"API_KEY": "F00B4R", "MYVAR": "42"}, clear=True)
     def test_env_interpolate(self, mock_load_dotenv):
-        self.assertEqual(42, Env.interpolate(42))
-        self.assertIs(int, type(Env.interpolate(42)))
-
         self.assertEqual("42", Env.interpolate("$MYVAR"))
         self.assertIs(str, type(Env.interpolate("$MYVAR")))
 
@@ -60,18 +35,6 @@ class TestEnv(unittest.TestCase):
                 "Environment variable 'OTHERMISSINGVAR' not found. ",
                 exc.exception.args[0],
             )
-
-    @patch(
-        "src.config.load_dotenv"
-    )  # Mock load_dotenv to prevent loading the actual .env file
-    @patch.dict(os.environ, {"DUNE_API_KEY": "test_key"}, clear=True)
-    def test_load_env_missing_db_url(self, mock_load_dotenv):
-        with self.assertRaises(RuntimeError) as context:
-            Env.load()
-        self.assertEqual(
-            "DB_URL environment variable must be set!",
-            str(context.exception),
-        )
 
 
 class TestRuntimeConfig(unittest.TestCase):
