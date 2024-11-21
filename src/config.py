@@ -212,23 +212,16 @@ class RuntimeConfig:
         with open(file_path, "rb") as _handle:
             data = yaml.safe_load(_handle)
 
-        # Load sources map
+        # Load data sources map
         sources = {}
-        for source in data.get("sources", []):
-            sources[str(source["name"])] = DbRef.from_dict(source)
-
-        # Load destinations map
-        destinations = {}
-        for destination in data.get("destinations", []):
-            destinations[str(destination["name"])] = DbRef.from_dict(destination)
+        for db_ref in data.get("data_sources", []):
+            sources[str(db_ref["name"])] = DbRef.from_dict(db_ref)
 
         jobs = []
         for job_config in data.get("jobs", []):
             source = cls._build_source(job_config["source"], sources)
-            destination = cls._build_destination(
-                job_config["destination"], destinations
-            )
-            jobs.append(Job(source, destination))
+            dest = cls._build_destination(job_config["destination"], sources)
+            jobs.append(Job(source, dest))
 
         return cls(jobs=jobs)
 

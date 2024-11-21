@@ -1,23 +1,15 @@
-sources:
-  - name: Dune1
+data_sources:
+  - name: Dune
     type: dune
     key: ${DUNE_API_KEY}
-  - name: PG1
-    type: postgres
-    key: ${DB_URL}
-
-destinations:
-  - name: Dune1
-    type: dune
-    key: ${DUNE_API_KEY}
-  - name: PG1
+  - name: PG
     type: postgres
     key: ${DB_URL}
 
 jobs:
   - name: Sync Parameterized Dune Query with Multiple Types to Postgres
     source:
-      ref: Dune1
+      ref: Dune
       query_id: 4238114
       query_engine: medium
       poll_frequency: 5
@@ -32,16 +24,16 @@ jobs:
           value: "10"
           type: NUMBER
     destination:
-      ref: PG1
+      ref: PG
       table_name: results_4238114
       if_exists: replace
 
   - name: Table Independent Query to Dune
     source:
-      ref: PG1
+      ref: PG
       query_string: "SELECT 1 as number, '\\x1234'::bytea as my_bytes;"
     destination:
-      ref: Dune1
+      ref: Dune
       table_name: dune_sync_test_table
 
   - name: Sync Parameterized Dune Query with Multiple Types to Postgres
