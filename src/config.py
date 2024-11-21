@@ -75,20 +75,10 @@ class Env:
     """
     A class to represent the environment configuration.
 
-    Attributes
-    ----------
-    db_url : str
-        The URL of the database connection.
-    dune_api_key : str
-        The API key used for accessing the Dune Analytics API.
-
     Methods
     -------
     None
     """
-
-    db_url: str
-    dune_api_key: str
 
     @classmethod
     def load(cls) -> Env:
@@ -97,23 +87,12 @@ class Env:
 
         Returns:
             Env: Initialized environment configuration
-
-        Raises:
-            RuntimeError: If required environment variables are not set
         """
         load_dotenv()
-        dune_api_key = os.environ.get("DUNE_API_KEY")
-        db_url = os.environ.get("DB_URL")
-
-        if dune_api_key is None:
-            raise RuntimeError("DUNE_API_KEY environment variable must be set!")
-        if db_url is None:
-            raise RuntimeError("DB_URL environment variable must be set!")
-
-        return cls(db_url, dune_api_key)
+        return cls()
 
     @staticmethod
-    def interpolate(value: Any) -> Any:
+    def interpolate(value: str) -> str:
         """
         Interpolate environment variables in a string value.
         Handles ${VAR} and $VAR syntax.
@@ -126,8 +105,6 @@ class Env:
         Raises:
             KeyError: If an environment variable referenced in the string doesn't exist.
         """
-        if not isinstance(value, str):
-            return value
 
         # Handle ${VAR} syntax
         template = Template(value)
