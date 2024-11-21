@@ -1,10 +1,8 @@
 ---
-sources:
+data_sources:
   - name: sqlite
     type: sqlite
     key: fake-key
-
-destinations:
   - name: dune
     type: dune
     key: fake-dune-key
