@@ -1,5 +1,14 @@
 # Dune Sync V2
 
+A general-purpose bidirectional data synchronization tool that enables seamless data transfer between [Dune Analytics](https://dune.com) and PostgreSQL databases. This project was developed as part of the [CoW DAO Grants Program](https://forum.cow.fi/t/grant-application-dune-sync-v2/2597).
+
+## Features
+
+- **Dune to PostgreSQL**: Archive data from Dune queries into your local database
+- **PostgreSQL to Dune**: Upload local data to Dune tables via the CSV upload endpoint
+- **Configuration-based**: Simple YAML configuration for defining sources, destinations, and jobs
+- **Docker-ready**: Easy deployment using pre-built container images
+
 ## Usage
 
 ### Create a configuration file
@@ -91,4 +100,26 @@ Fill out the empty fields in [Sample Env](.env.sample) (e.g. `DUNE_API_KEY` and 
 ```shell
 docker-compose up -d # Starts postgres container (in the background)
 python -m src.main --config config.yaml
+```
+
+### Development Commands
+
+The project uses a Makefile to streamline development tasks. Here are the available commands:
+
+- `make install`: Creates a virtual environment and installs all development dependencies
+- `make fmt`: Formats code using black
+- `make lint`: Runs pylint for code quality checks
+- `make types`: Performs static type checking with mypy
+- `make check`: Runs formatting, linting, and type checking in sequence
+- `make test`: Runs pytest with coverage reporting (minimum 80% coverage required)
+- `make clean`: Removes Python cache files
+- `make run`: Executes the main application
+
+To get started with development:
+
+```shell
+make install  # Set up virtual environment
+source .venv/bin/activate  # Activate virtual environment
+make check  # Verify code quality
+make test   # Run tests
 ```
