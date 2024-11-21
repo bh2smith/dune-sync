@@ -6,23 +6,15 @@
 
 Configuration is provided in a single YAML file. Refer to the existing `config.yaml` for an overview.
 The configuration file consists of three main sections:
-- `sources`: Defines available data sources
-- `destinations`: Defines available data destinations
+- `data_sources`: Defines available databases
 - `jobs`: Defines synchronization jobs that connect sources to destinations
 
-#### Source Definitions
+#### Data Source Definitions
 
 Sources are defined as a list of configurations, each containing:
 - `name`: String. A unique identifier for referencing this source in jobs
 - `type`: String. Must be either `dune` or `postgres`
 - `key`: String. Connection details, supports environment variable templating using `${VAR_NAME}` syntax such as `${DB_URL}` or `${DUNE_API_KEY}` ([see environment setup](#define-environment))
-
-#### Destination Definitions
-
-Destinations are defined similarly to sources:
-- `name`: String. A unique identifier for referencing this destination in jobs
-- `type`: String. Must be either `dune` or `postgres`
-- `key`: String. Connection details, supports environment variable templating using `${VAR_NAME}` syntax
 
 #### Job Parameters
 
