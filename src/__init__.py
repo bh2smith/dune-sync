@@ -1,6 +1,4 @@
-"""
-Main package initialization for dune-sync.
-"""
+"""Main package initialization for dune-sync."""
 
 from pathlib import Path
 

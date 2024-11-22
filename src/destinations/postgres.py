@@ -1,6 +1,4 @@
-"""
-Destination logic for PostgreSQL.
-"""
+"""Destination logic for PostgreSQL."""
 
 from typing import Literal
 
@@ -14,8 +12,7 @@ TableExistsPolicy = Literal["append", "replace"]
 
 
 class PostgresDestination(Destination[TypedDataFrame]):
-    """
-    A class representing PostgreSQL as a destination for data storage.
+    """A class representing PostgreSQL as a destination for data storage.
 
     This class uses SQLAlchemy to connect to a PostgreSQL database and save data
     to a specified table, with options to handle table existence policies.
@@ -37,6 +34,7 @@ class PostgresDestination(Destination[TypedDataFrame]):
     save(data: TypedDataFrame) -> None
         Saves the provided data to the PostgreSQL table,
         creating or appending as specified.
+
     """
 
     def __init__(
@@ -48,7 +46,8 @@ class PostgresDestination(Destination[TypedDataFrame]):
         super().__init__()
 
     def validate(self) -> bool:
-        """Validate the destination setup
+        """Validate the destination setup.
+
         (currently a placeholder that returns True).
         """
         return True
@@ -57,8 +56,7 @@ class PostgresDestination(Destination[TypedDataFrame]):
         self,
         data: TypedDataFrame,
     ) -> None:
-        """
-        Saves the provided DataFrame to the PostgreSQL database table.
+        """Save the provided DataFrame to the PostgreSQL database table.
 
         Parameters
         ----------
@@ -72,6 +70,7 @@ class PostgresDestination(Destination[TypedDataFrame]):
             If there is an error while connecting or saving data to Postgres.
         Warning
             If the DataFrame is empty, a warning is logged, and no data is saved.
+
         """
         df, dtypes = data
         if df.empty:
