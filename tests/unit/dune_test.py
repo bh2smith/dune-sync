@@ -43,12 +43,8 @@ class DuneSourceTest(unittest.TestCase):
             (DOUBLE_PRECISION, [], []), _handle_column_types("real_col", "real")
         )
         # decimal(x,y) is handled in a separate test
-        self.assertEqual(
-            (BIGINT, [], []), _handle_column_types("bigint_col", "bigint")
-        )
-        self.assertEqual(
-            (INTEGER, [], []), _handle_column_types("int_col", "integer")
-        )
+        self.assertEqual((BIGINT, [], []), _handle_column_types("bigint_col", "bigint"))
+        self.assertEqual((INTEGER, [], []), _handle_column_types("int_col", "integer"))
         self.assertEqual(
             (BYTEA, ["byte_col"], []),
             _handle_column_types("byte_col", "varbinary"),
