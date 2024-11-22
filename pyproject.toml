@@ -36,9 +36,9 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*" = [
-  "D", # Ignore all docstring rules in tests
-  # "T20", # Allow print statements in tests
-  # "N802", # Allow function names like "test_someFunction_does_something"
+  "D",    # Ignore all docstring rules in tests
+  "T20",  # Allow print statements in tests
+  "N802", # Allow function names like "test_someFunction_does_something"
   "B018", # Allow using mock objects without explicit assert
   "RET",  # Allow multiple returns in test functions
   "E731", # Allow lambda assignments in tests
