@@ -31,8 +31,19 @@ check:
 	make types
 
 
-test:
+test-env:
+	docker-compose up -d
+
+test-cleanup:
+	docker-compose down
+
+test: test-env
+	python -m pytest
+	make test-cleanup
+
+coverage: test-env
 	python -m pytest --cov=src --cov-report=html --cov-fail-under=80 tests/
+	make test-cleanup
 
 run:
 	python -m src.main
