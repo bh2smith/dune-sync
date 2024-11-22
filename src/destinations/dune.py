@@ -29,7 +29,9 @@ class DuneDestination(Destination[DataFrame]):
         super().__init__()
 
     def validate(self) -> bool:
-        """Validates the destination setup (currently a placeholder that returns True)."""
+        """Validates the destination setup
+        (currently a placeholder that returns True).
+        """
         return True
 
     def save(self, data: DataFrame) -> None:

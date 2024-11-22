@@ -3,7 +3,6 @@ Source logic for PostgreSQL.
 """
 
 import asyncio
-
 from pathlib import Path
 
 import pandas as pd
@@ -20,9 +19,10 @@ def _convert_bytea_to_hex(df: DataFrame) -> DataFrame:
     """
     Converts PostgreSQL BYTEA columns to hexadecimal string representation.
 
-    This function iterates through the columns of a DataFrame and, if a column's first entry
-    is of type `memoryview`, it assumes that column is of type BYTEA and converts each entry to a
-    hexadecimal string prefixed with '0x'.
+    This function iterates through the columns of a DataFrame and,
+    if a column's first entry is of type `memoryview`, assumes that
+    column is of type BYTEA and converts each entry to a hexadecimal
+    string prefixed with '0x'.
 
     Parameters
     ----------
@@ -45,7 +45,7 @@ def _convert_bytea_to_hex(df: DataFrame) -> DataFrame:
 
 class PostgresSource(Source[DataFrame]):
     """
-    A class representing PostgreSQL as a data source for retrieving data via SQL queries.
+    Represent PostgreSQL as a data source for retrieving data via SQL queries.
 
     This class connects to a PostgreSQL database using SQLAlchemy and executes a query
     either directly from a string or by reading from a specified `.sql` file.
@@ -90,7 +90,8 @@ class PostgresSource(Source[DataFrame]):
         Raises
         ------
         SQLAlchemyError
-            If the query is invalid or cannot be compiled, an error is logged and False is returned.
+            If the query is invalid or cannot be compiled, an error
+            is logged and False is returned.
         """
         try:
             # Try to compile the query without executing it
@@ -161,7 +162,8 @@ class PostgresSource(Source[DataFrame]):
         Raises
         ------
         RuntimeError
-            If the specified `.sql` file does not exist or is not a file, an error is raised.
+            If the specified `.sql` file does not exist or is not a file,
+            an error is raised.
         """
         sql_source = Path(self.query_string)
         if not sql_source.is_file() or not sql_source.exists():
@@ -170,6 +172,6 @@ class PostgresSource(Source[DataFrame]):
                 f"but it doesn't exist or isn't a file: {sql_source}"
             )
 
-        with open(sql_source, "r", encoding="utf-8") as _handle:
+        with open(sql_source, encoding="utf-8") as _handle:
             sql = _handle.read()
             self.query_string = sql

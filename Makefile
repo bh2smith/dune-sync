@@ -20,7 +20,7 @@ fmt:
 	black ./
 
 lint:
-	pylint ${PROJECT_ROOT}/
+	ruff check .
 
 types:
 	mypy ${PROJECT_ROOT}/ --strict
@@ -47,3 +47,8 @@ coverage: test-env
 
 run:
 	python -m src.main
+
+.PHONY: format
+format:
+	ruff format .
+	ruff check --fix .

@@ -5,26 +5,26 @@ Source logic for Dune Analytics.
 import json
 import re
 from abc import ABC
-from typing import Type, Any, Literal, List, Tuple
+from typing import Any, Literal
 
 import pandas as pd
 from dune_client.client_async import AsyncDuneClient
 from dune_client.models import ExecutionResult
 from dune_client.query import QueryBase
 from pandas import DataFrame
-from sqlalchemy import BIGINT, BOOLEAN, VARCHAR, DATE, TIMESTAMP
+from sqlalchemy import BIGINT, BOOLEAN, DATE, TIMESTAMP, VARCHAR
 from sqlalchemy.dialects.postgresql import (
     BYTEA,
     DOUBLE_PRECISION,
     INTEGER,
-    NUMERIC,
     JSONB,
+    NUMERIC,
 )
 
 from src.interfaces import Source, TypedDataFrame
 from src.logger import log
 
-DUNE_TO_PG: dict[str, Type[Any] | NUMERIC] = {
+DUNE_TO_PG: dict[str, type[Any] | NUMERIC] = {
     "bigint": BIGINT,
     "integer": INTEGER,
     "varbinary": BYTEA,
@@ -93,7 +93,7 @@ def _reformat_unknown_columns(df: DataFrame, unknown_columns: list[str]) -> Data
 def _handle_column_types(
     name: str,
     d_type: str,
-) -> Tuple[Any, List[str], List[str]]:
+) -> tuple[Any, list[str], list[str]]:
     """
     Process a single column type and handle special cases.
 
@@ -161,7 +161,7 @@ def dune_result_to_df(result: ExecutionResult) -> TypedDataFrame:
     varbinary_cols = []
     unknown_cols = []
 
-    for name, d_type in zip(metadata.column_names, metadata.column_types):
+    for name, d_type in zip(metadata.column_names, metadata.column_types, strict=False):
         pg_type, _varbinary_cols, _unknown_cols = _handle_column_types(name, d_type)
         dtypes[name] = pg_type
         varbinary_cols.extend(_varbinary_cols)
@@ -178,24 +178,27 @@ class DuneSource(Source[TypedDataFrame], ABC):
     """
     A class representing Dune as a data source for retrieving query results.
 
-    This class interacts with the Dune Analytics API to execute queries and fetch results
-    in a DataFrame format, with appropriate data type conversions.
+    This class interacts with the Dune Analytics API to execute queries and
+    fetch results in a DataFrame format, with appropriate data type conversions.
 
     Attributes
     ----------
     client : DuneClient
-        An instance of DuneClient initialized with the API key for connecting to Dune Analytics.
+        An instance of DuneClient initialized with the API key for connecting to
+        Dune Analytics.
     query : QueryBase
         The query to be executed on Dune Analytics.
     poll_frequency : int
-        Frequency in seconds at which the query execution status is polled (default is 1 second).
+        Frequency in seconds at which the query execution status is polled
+        (default is 1 second).
 
     Methods
     -------
     validate() -> bool
         Validates the source setup (currently always returns True).
     fetch() -> TypedDataFrame
-        Executes the Dune query and retrieves the result as a DataFrame with associated types.
+        Executes the Dune query and retrieves the result as a DataFrame
+        with associated types.
     is_empty(data: TypedDataFrame) -> bool
         Checks if the retrieved data is empty.
     """

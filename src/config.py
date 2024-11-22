@@ -7,8 +7,8 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 from string import Template
+from typing import Any
 
 import yaml
 from dotenv import load_dotenv
@@ -18,7 +18,7 @@ from dune_client.types import ParameterType, QueryParameter
 from src.destinations.dune import DuneDestination
 from src.destinations.postgres import PostgresDestination
 from src.interfaces import Destination, Source
-from src.job import Job, Database
+from src.job import Database, Job
 from src.sources.dune import DuneSource
 from src.sources.postgres import PostgresSource
 
@@ -48,7 +48,8 @@ class DbRef:
         Create a DbRef instance from a dictionary configuration.
 
         Args:
-            data (dict[str, str]): Dictionary containing database reference configuration with keys:
+            data (dict[str, str]): Dictionary containing database reference
+                configuration with keys:
                 - name: The name of the database reference
                 - type: The database type ('dune' or 'postgres')
                 - key: The connection key with optional environment variable references
@@ -254,7 +255,8 @@ class RuntimeConfig:
             destinations (dict[str, DbRef]): Map of available destination references
 
         Returns:
-            Destination[Any]: Configured destination object (DuneDestination or PostgresDestination)
+            Destination[Any]: Configured destination object
+                (DuneDestination or PostgresDestination)
 
         Raises:
             ValueError: If destination type is unsupported

@@ -27,14 +27,16 @@ class PostgresDestination(Destination[TypedDataFrame]):
     table_name : str
         The name of the destination table in PostgreSQL where data will be saved.
     if_exists : TableExistsPolicy
-        Policy for handling existing tables: "fail", "replace", or "append" (default is "append").
+        Policy for handling existing tables:
+            "fail", "replace", or "append" (default is "append").
 
     Methods
     -------
     validate() -> bool
         Validates the destination setup (currently always returns True).
     save(data: TypedDataFrame) -> None
-        Saves the provided data to the PostgreSQL table, creating or appending as specified.
+        Saves the provided data to the PostgreSQL table,
+        creating or appending as specified.
     """
 
     def __init__(
@@ -46,7 +48,9 @@ class PostgresDestination(Destination[TypedDataFrame]):
         super().__init__()
 
     def validate(self) -> bool:
-        """Validates the destination setup (currently a placeholder that returns True)."""
+        """Validate the destination setup
+        (currently a placeholder that returns True).
+        """
         return True
 
     def save(
@@ -59,12 +63,13 @@ class PostgresDestination(Destination[TypedDataFrame]):
         Parameters
         ----------
         data : TypedDataFrame
-            A tuple containing the DataFrame to save and its corresponding SQLAlchemy column types.
+            A tuple containing the DataFrame to save and its corresponding
+            SQLAlchemy column types.
 
         Raises
         ------
         sqlalchemy.exc.SQLAlchemyError
-            If there is an error while connecting or saving data to the PostgreSQL database.
+            If there is an error while connecting or saving data to Postgres.
         Warning
             If the DataFrame is empty, a warning is logged, and no data is saved.
         """

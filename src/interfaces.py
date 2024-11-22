@@ -3,8 +3,7 @@ Interface definitions for the dune-sync package.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any
-from typing import TypeVar, Generic
+from typing import Any, Generic, TypeVar
 
 from pandas import DataFrame
 

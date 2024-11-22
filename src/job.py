@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
-from src.interfaces import Source, Destination
+from src.interfaces import Destination, Source
 from src.logger import log
 
 
@@ -65,7 +65,7 @@ class Job:
 
     async def run(self) -> None:
         """
-        Execute the job by fetching data from the source and saving it to the destination.
+        Execute the job by fetching from the source and saving to the destination.
 
         The method will:
         1. Fetch data from the source
