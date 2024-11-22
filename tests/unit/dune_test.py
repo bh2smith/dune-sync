@@ -36,25 +36,25 @@ class DuneSourceTest(unittest.TestCase):
 
         for invalid in invalid_decimals:
             with self.subTest(msg=invalid):
-                self.assertEqual(([None, None]), _parse_decimal_type(invalid))
+                self.assertEqual((None, None), _parse_decimal_type(invalid))
 
     def test__handle_column_types(self):
         self.assertEqual(
-            ([DOUBLE_PRECISION, [], []]), _handle_column_types("real_col", "real")
+            (DOUBLE_PRECISION, [], []), _handle_column_types("real_col", "real")
         )
         # decimal(x,y) is handled in a separate test
         self.assertEqual(
-            ([BIGINT, [], []]), _handle_column_types("bigint_col", "bigint")
+            (BIGINT, [], []), _handle_column_types("bigint_col", "bigint")
         )
         self.assertEqual(
-            ([INTEGER, [], []]), _handle_column_types("int_col", "integer")
+            (INTEGER, [], []), _handle_column_types("int_col", "integer")
         )
         self.assertEqual(
-            ([BYTEA, ["byte_col"], []]),
+            (BYTEA, ["byte_col"], []),
             _handle_column_types("byte_col", "varbinary"),
         )
         self.assertEqual(
-            ([JSONB, [], ["arr_col"]]),
+            (JSONB, [], ["arr_col"]),
             _handle_column_types("arr_col", "unknown_type"),
         )
         with (
@@ -63,7 +63,7 @@ class DuneSourceTest(unittest.TestCase):
         ):
             _mock_decimal_type.return_value = [None, None]
             self.assertEqual(
-                ([JSONB, [], ["dec_col"]]),
+                (JSONB, [], ["dec_col"]),
                 _handle_column_types("dec_col", "decimal(12, 2222)"),
             )
         self.assertIn(
