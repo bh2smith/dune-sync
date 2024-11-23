@@ -15,7 +15,7 @@ class DatabaseTests(unittest.TestCase):
         with self.assertRaises(ValueError) as exc:
             Database.from_string("redis")
 
-        self.assertEqual(f"Unknown Database type: redis", exc.exception.args[0])
+        self.assertEqual("Unknown Database type: redis", exc.exception.args[0])
 
     def test_job_name_formatting(self):
         src = DuneSource(api_key="f00b4r", query=QueryBase(query_id=1234))

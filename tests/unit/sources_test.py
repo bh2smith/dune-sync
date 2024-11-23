@@ -11,7 +11,7 @@ from sqlalchemy.dialects.postgresql import BYTEA
 from src.config import RuntimeConfig
 from src.sources.dune import _reformat_varbinary_columns, dune_result_to_df
 from src.sources.postgres import PostgresSource, _convert_bytea_to_hex
-from tests import fixtures_root, config_root
+from tests import config_root, fixtures_root
 
 
 class TestSourceUtils(unittest.TestCase):
@@ -74,7 +74,6 @@ class TestSourceUtils(unittest.TestCase):
 
 
 class TestPostgresSource(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         cls.env_patcher = patch.dict(

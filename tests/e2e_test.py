@@ -4,18 +4,18 @@ import os
 import unittest
 from logging import WARNING
 from os import getenv
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pandas.testing
 from dune_client.models import ResultsResponse
 from pandas import DataFrame
-from sqlalchemy import BIGINT, BOOLEAN, VARCHAR, DATE, TIMESTAMP
+from sqlalchemy import BIGINT, BOOLEAN, DATE, TIMESTAMP, VARCHAR
 from sqlalchemy.dialects.postgresql import BYTEA, NUMERIC
 
 from src.config import RuntimeConfig
 from src.destinations.postgres import PostgresDestination
 from src.sources.dune import dune_result_to_df
-from tests import fixtures_root, config_root
+from tests import config_root, fixtures_root
 from tests.db_util import query_pg
 
 DB_URL = getenv("DB_URL", "postgresql://postgres:postgres@localhost:5432/postgres")
@@ -103,7 +103,7 @@ SAMPLE_DUNE_RESULTS_NO_ROWS = ResultsResponse.from_dict(
 with open(fixtures_root / "simple_dune_upload.csv") as csv_file:
     reader = csv.reader(csv_file)
     next(reader)
-    data = [line for line in reader]
+    data = list(reader)
 postgres_to_dune_test_df = pandas.DataFrame.from_records(data)
 
 # add a memoryview column - this is what BYTEA postgres types are converted to

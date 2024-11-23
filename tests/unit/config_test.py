@@ -87,7 +87,6 @@ class TestRuntimeConfig(unittest.TestCase):
 
 
 class TestParseQueryParameters(unittest.TestCase):
-
     def test_parse_query_parameters(self):
         params = [
             {"name": "text", "type": "TEXT", "value": "sample text"},

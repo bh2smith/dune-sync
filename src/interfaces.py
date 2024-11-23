@@ -1,10 +1,7 @@
-"""
-Interface definitions for the dune-sync package.
-"""
+"""Interface definitions for the dune-sync package."""
 
 from abc import ABC, abstractmethod
-from typing import Any
-from typing import TypeVar, Generic
+from typing import Any, Generic, TypeVar
 
 from pandas import DataFrame
 
@@ -15,7 +12,7 @@ T = TypeVar("T")
 
 
 class Validate(ABC):
-    """Enforces validation on inheriting classes"""
+    """Enforce validation on inheriting classes."""
 
     def __init__(self) -> None:
         if not self.validate():
@@ -23,24 +20,24 @@ class Validate(ABC):
 
     @abstractmethod
     def validate(self) -> bool:
-        """Validate the configuration"""
+        """Validate the configuration."""
 
 
 class Source(Validate, Generic[T]):
-    """Abstract base class for data sources"""
+    """Abstract base class for data sources."""
 
     @abstractmethod
     async def fetch(self) -> T:
-        """Fetch data from the source"""
+        """Fetch data from the source."""
 
     @abstractmethod
     def is_empty(self, data: T) -> bool:
-        """Return True if the fetched data is empty"""
+        """Return True if the fetched data is empty."""
 
 
 class Destination(Validate, Generic[T]):
-    """Abstract base class for data destinations"""
+    """Abstract base class for data destinations."""
 
     @abstractmethod
     def save(self, data: T) -> None:
-        """Save data to the destination"""
+        """Save data to the destination."""
