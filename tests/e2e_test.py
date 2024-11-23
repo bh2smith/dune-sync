@@ -4,9 +4,10 @@ import os
 import unittest
 from logging import WARNING
 from os import getenv
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pandas.testing
+import pytest
 from dune_client.models import ResultsResponse
 from pandas import DataFrame
 from sqlalchemy import BIGINT, BOOLEAN, DATE, TIMESTAMP, VARCHAR
@@ -111,7 +112,7 @@ memview_content = memoryview(b"foo")
 postgres_to_dune_test_df.insert(2, "hash", [memview_content])
 
 
-class TestEndToEnd(unittest.TestCase):
+class TestEndToEnd(unittest.IsolatedAsyncioTestCase):
     def test_dune_results_to_db(self):
         pg = PostgresDestination(
             db_url=DB_URL, table_name="test_table", if_exists="replace"
@@ -169,17 +170,18 @@ class TestEndToEnd(unittest.TestCase):
             query_pg(pg.engine, "select * from test_table"),
         )
 
+    @pytest.mark.asyncio
     @patch("src.sources.dune.AsyncDuneClient")
     @patch("src.config.load_dotenv")
     @patch.dict(os.environ, {"DUNE_API_KEY": "test_key", "DB_URL": DB_URL})
     async def test_dune_to_local_job_run(self, mock_env, mock_dune_client):
-        good_client = MagicMock(name="Mock Dune client that returns a result")
+        good_client = AsyncMock(name="Mock Dune client that returns a result")
         good_client.run_query.return_value = SAMPLE_DUNE_RESULTS
 
-        bad_client_returned_none = MagicMock(name="Mock Dune client that returns None")
-        bad_client_returned_none.run_query.return_value.result = None
+        bad_client_returned_none = AsyncMock(name="Mock Dune client that returns None")
+        bad_client_returned_none.refresh.return_value.result = None
 
-        empty_result_client = MagicMock(
+        empty_result_client = AsyncMock(
             name="Mock Dune client that returns an empty df"
         )
         empty_result_client.run_query.return_value = SAMPLE_DUNE_RESULTS_NO_ROWS
