@@ -56,8 +56,13 @@ class DuneDestinationTest(unittest.TestCase):
             dest.save(data=df)
 
         mock_dune_upload_csv.assert_called_once()
-        expected_message = "Dune did not accept our upload: Can't build response from {'error': 'bad stuff'}"
-        self.assertIn(expected_message, logs.output[0])
+
+        # does this shit really look better just because it's < 88 characters long?
+        exmsg = (
+            "Dune did not accept our upload: "
+            "Can't build response from {'error': 'bad stuff'}"
+        )
+        self.assertIn(exmsg, logs.output[0])
 
         mock_dune_upload_csv.reset_mock()
         mock_dune_upload_csv.side_effect = val_err

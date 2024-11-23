@@ -230,7 +230,7 @@ class RuntimeConfig:
             source = sources[source_config["ref"]]
         except KeyError as e:
             raise SystemExit(
-                'Fatal: no datasource with `name` = '
+                "Fatal: no datasource with `name` = "
                 f'"{source_config["ref"]}" defined in config'
             ) from e
 
@@ -279,7 +279,7 @@ class RuntimeConfig:
             dest = destinations[dest_config["ref"]]
         except KeyError as e:
             raise SystemExit(
-                'Fatal: no datasource with `name` = '
+                "Fatal: no datasource with `name` = "
                 f' "{dest_config["ref"]}" defined in config'
             ) from e
 
