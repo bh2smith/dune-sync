@@ -191,7 +191,10 @@ class RuntimeConfig:
 
         # Load data sources map
         sources = {}
-        for db_ref in data.get("data_sources", []):
+        if not data.get("data_sources"):
+            raise SystemExit("Fatal: No data_sources defined in config.")
+
+        for db_ref in data["data_sources"]:
             sources[str(db_ref["name"])] = DbRef.from_dict(db_ref)
 
         jobs = []

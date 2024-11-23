@@ -82,6 +82,9 @@ class TestRuntimeConfig(unittest.TestCase):
         with self.assertRaises(SystemExit):
             RuntimeConfig.load_from_yaml(config_root / "unknown_dest.yaml")
 
+        with self.assertRaises(SystemExit):
+            RuntimeConfig.load_from_yaml(config_root / "no_data_sources.yaml")
+
 
 class TestParseQueryParameters(unittest.TestCase):
 
