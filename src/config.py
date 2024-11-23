@@ -7,8 +7,8 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 from string import Template
+from typing import Any
 
 import yaml
 from dotenv import load_dotenv
@@ -198,7 +198,8 @@ class RuntimeConfig:
         for job_config in data.get("jobs", []):
             source = cls._build_source(job_config["source"], sources)
             dest = cls._build_destination(job_config["destination"], sources)
-            jobs.append(Job(source, dest))
+            name = job_config["name"]
+            jobs.append(Job(name, source, dest))
 
         return cls(jobs=jobs)
 
@@ -220,7 +221,13 @@ class RuntimeConfig:
             ValueError: If source type is unsupported
             KeyError: If referenced source is not found
         """
-        source = sources[source_config["ref"]]
+        try:
+            source = sources[source_config["ref"]]
+        except KeyError as e:
+            raise SystemExit(
+                f'Fatal: no datasource with `name` = "{source_config["ref"]}" defined in config'
+            ) from e
+
         match source.type:
             case Database.DUNE:
                 return DuneSource(
@@ -237,7 +244,8 @@ class RuntimeConfig:
 
             case Database.POSTGRES:
                 return PostgresSource(
-                    db_url=source.key, query_string=source_config["query_string"]
+                    db_url=source.key,
+                    query_string=source_config["query_string"],
                 )
 
         raise ValueError(f"Unsupported source_db type: {source}")
@@ -260,7 +268,13 @@ class RuntimeConfig:
             ValueError: If destination type is unsupported
             KeyError: If referenced destination is not found
         """
-        dest = destinations[dest_config["ref"]]
+        try:
+            dest = destinations[dest_config["ref"]]
+        except KeyError as e:
+            raise SystemExit(
+                f'Fatal: no datasource with `name` "{dest_config["ref"]}" defined in config'
+            ) from e
+
         match dest.type:
             case Database.DUNE:
                 return DuneDestination(

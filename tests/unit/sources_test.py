@@ -68,6 +68,10 @@ class TestSourceUtils(unittest.TestCase):
         assert result["hex_col"].tolist() == ["0x1234", "0xabcd"]
         assert result["normal_col"].tolist() == [1, 2]
 
+        df = pd.DataFrame([])
+        result = _convert_bytea_to_hex(df)
+        pd.testing.assert_frame_equal(pd.DataFrame([]), result)
+
 
 class TestPostgresSource(unittest.TestCase):
 
@@ -120,3 +124,11 @@ class TestPostgresSource(unittest.TestCase):
                 query_string="SELECT 1",
             )
         self.assertEqual("Config for PostgresSource is invalid", str(context.exception))
+
+    def test_is_empty(self):
+        src = PostgresSource(
+            db_url="postgresql://postgres:postgres@localhost:5432/postgres",
+            query_string="SELECT 1",
+        )
+        df = pd.DataFrame([])
+        self.assertTrue(src.is_empty(df))

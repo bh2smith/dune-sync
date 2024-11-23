@@ -60,6 +60,7 @@ class Job:
         destination (Destination[Any]): The destination to load data into
     """
 
+    name: str
     source: Source[Any]
     destination: Destination[Any]
 
@@ -81,3 +82,6 @@ class Job:
             self.destination.save(df)
         else:
             log.warning("No Query results found! Skipping write")
+
+    def __str__(self) -> str:
+        return f"{self.name}"

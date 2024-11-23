@@ -1,0 +1,20 @@
+---
+data_sources:
+  - name: dune
+    type: dune
+    key: fake-key
+  - name: postgres
+    type: postgres
+    key: fake-pg-key
+
+jobs:
+  - name: Download simple test query to local postgres
+    source:
+      ref: dune
+      query_id: 4238114
+      query_engine: medium
+      poll_frequency: 5
+    destination:
+      ref: foo
+      table_name: "test_table"
+      if_exists: replace

@@ -113,7 +113,9 @@ postgres_to_dune_test_df.insert(2, "hash", [memview_content])
 
 class TestEndToEnd(unittest.TestCase):
     def test_dune_results_to_db(self):
-        pg = PostgresDestination(DB_URL, table_name="test_table", if_exists="replace")
+        pg = PostgresDestination(
+            db_url=DB_URL, table_name="test_table", if_exists="replace"
+        )
         df, types = dune_result_to_df(SAMPLE_DUNE_RESULTS.result)
 
         expected = DataFrame(

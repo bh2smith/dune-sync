@@ -43,6 +43,6 @@ jobs:
       query_engine: medium
       poll_frequency: 5
     destination:
-      ref: PG1
+      ref: PG
       table_name: app_data
       if_exists: replace

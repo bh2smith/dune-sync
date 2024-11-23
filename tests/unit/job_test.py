@@ -1,6 +1,10 @@
 import unittest
 
-from src.job import Database
+from dune_client.query import QueryBase
+
+from src.destinations.postgres import PostgresDestination
+from src.job import Database, Job
+from src.sources.dune import DuneSource
 
 
 class DatabaseTests(unittest.TestCase):
@@ -12,3 +16,12 @@ class DatabaseTests(unittest.TestCase):
             Database.from_string("redis")
 
         self.assertEqual(f"Unknown Database type: redis", exc.exception.args[0])
+
+    def test_job_name_formatting(self):
+        src = DuneSource(api_key="f00b4r", query=QueryBase(query_id=1234))
+        dest = PostgresDestination(
+            db_url="postgresql://postgres:postgres@localhost:5432/postgres",
+            table_name="some_table",
+        )
+        sample_job = Job(name="Move the goats to the pen", source=src, destination=dest)
+        self.assertEqual("Move the goats to the pen", str(sample_job))

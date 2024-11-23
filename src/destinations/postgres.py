@@ -38,7 +38,10 @@ class PostgresDestination(Destination[TypedDataFrame]):
     """
 
     def __init__(
-        self, db_url: str, table_name: str, if_exists: TableExistsPolicy = "append"
+        self,
+        db_url: str,
+        table_name: str,
+        if_exists: TableExistsPolicy = "append",
     ):
         self.engine: sqlalchemy.engine.Engine = create_engine(db_url)
         self.table_name: str = table_name
