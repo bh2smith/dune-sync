@@ -51,3 +51,6 @@ line-ending = "auto"
 
 [tool.ruff.lint.isort]
 known-first-party = ["src", "tests"]
+
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"
