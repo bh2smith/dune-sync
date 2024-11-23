@@ -57,6 +57,7 @@ class Job:
 
     """
 
+    name: str
     source: Source[Any]
     destination: Destination[Any]
 
@@ -78,3 +79,7 @@ class Job:
             self.destination.save(df)
         else:
             log.warning("No Query results found! Skipping write")
+
+    def __str__(self) -> str:
+        """Return a string representation of the job to use in logging."""
+        return f"{self.name}"

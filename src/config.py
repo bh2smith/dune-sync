@@ -193,14 +193,18 @@ class RuntimeConfig:
 
         # Load data sources map
         sources = {}
-        for db_ref in data.get("data_sources", []):
+        if not data.get("data_sources"):
+            raise SystemExit("Fatal: No data_sources defined in config.")
+
+        for db_ref in data["data_sources"]:
             sources[str(db_ref["name"])] = DbRef.from_dict(db_ref)
 
         jobs = []
         for job_config in data.get("jobs", []):
             source = cls._build_source(job_config["source"], sources)
             dest = cls._build_destination(job_config["destination"], sources)
-            jobs.append(Job(source, dest))
+            name = job_config["name"]
+            jobs.append(Job(name, source, dest))
 
         return cls(jobs=jobs)
 
@@ -222,7 +226,14 @@ class RuntimeConfig:
             KeyError: If referenced source is not found
 
         """
-        source = sources[source_config["ref"]]
+        try:
+            source = sources[source_config["ref"]]
+        except KeyError as e:
+            raise SystemExit(
+                "Fatal: no datasource with `name` = "
+                f'"{source_config["ref"]}" defined in config'
+            ) from e
+
         match source.type:
             case Database.DUNE:
                 return DuneSource(
@@ -239,7 +250,8 @@ class RuntimeConfig:
 
             case Database.POSTGRES:
                 return PostgresSource(
-                    db_url=source.key, query_string=source_config["query_string"]
+                    db_url=source.key,
+                    query_string=source_config["query_string"],
                 )
 
         raise ValueError(f"Unsupported source_db type: {source}")
@@ -263,7 +275,14 @@ class RuntimeConfig:
             KeyError: If referenced destination is not found
 
         """
-        dest = destinations[dest_config["ref"]]
+        try:
+            dest = destinations[dest_config["ref"]]
+        except KeyError as e:
+            raise SystemExit(
+                "Fatal: no datasource with `name` = "
+                f' "{dest_config["ref"]}" defined in config'
+            ) from e
+
         match dest.type:
             case Database.DUNE:
                 return DuneDestination(

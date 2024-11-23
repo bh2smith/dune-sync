@@ -76,6 +76,15 @@ class TestRuntimeConfig(unittest.TestCase):
             RuntimeConfig.load_from_yaml(config_root / "buggy.yaml")
         self.assertIn("'table_name'", str(context.exception))
 
+        with self.assertRaises(SystemExit):
+            RuntimeConfig.load_from_yaml(config_root / "unknown_src.yaml")
+
+        with self.assertRaises(SystemExit):
+            RuntimeConfig.load_from_yaml(config_root / "unknown_dest.yaml")
+
+        with self.assertRaises(SystemExit):
+            RuntimeConfig.load_from_yaml(config_root / "no_data_sources.yaml")
+
 
 class TestParseQueryParameters(unittest.TestCase):
     def test_parse_query_parameters(self):
