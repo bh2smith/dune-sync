@@ -1,30 +1,28 @@
-"""
-Source logic for Dune Analytics.
-"""
+"""Source logic for Dune Analytics."""
 
 import json
 import re
 from abc import ABC
-from typing import Type, Any, Literal, List, Tuple
+from typing import Any, Literal
 
 import pandas as pd
 from dune_client.client_async import AsyncDuneClient
 from dune_client.models import ExecutionResult
 from dune_client.query import QueryBase
 from pandas import DataFrame
-from sqlalchemy import BIGINT, BOOLEAN, VARCHAR, DATE, TIMESTAMP
+from sqlalchemy import BIGINT, BOOLEAN, DATE, TIMESTAMP, VARCHAR
 from sqlalchemy.dialects.postgresql import (
     BYTEA,
     DOUBLE_PRECISION,
     INTEGER,
-    NUMERIC,
     JSONB,
+    NUMERIC,
 )
 
 from src.interfaces import Source, TypedDataFrame
 from src.logger import log
 
-DUNE_TO_PG: dict[str, Type[Any] | NUMERIC] = {
+DUNE_TO_PG: dict[str, type[Any] | NUMERIC] = {
     "bigint": BIGINT,
     "integer": INTEGER,
     "varbinary": BYTEA,
@@ -39,8 +37,7 @@ DUNE_TO_PG: dict[str, Type[Any] | NUMERIC] = {
 
 
 def _parse_decimal_type(type_str: str) -> tuple[int, int] | tuple[None, None]:
-    """
-    Extract precision and scale from Dune's decimal type string like 'decimal(38, 0)'
+    """Extract precision and scale from Dune's decimal type string like decimal(38, 0).
 
     Parameters
     ----------
@@ -51,6 +48,7 @@ def _parse_decimal_type(type_str: str) -> tuple[int, int] | tuple[None, None]:
     -------
     tuple[int, int]
         Precision and scale as integers, or two Nones if parsing failed
+
     """
     match = re.match(r"decimal\((\d+),\s*(\d+)\)", type_str)
     if not match:
@@ -63,8 +61,7 @@ def _parse_decimal_type(type_str: str) -> tuple[int, int] | tuple[None, None]:
 def _reformat_varbinary_columns(
     df: DataFrame, varbinary_columns: list[str]
 ) -> DataFrame:
-    """
-    Reformats specified columns in a DataFrame from hexadecimal strings to bytes.
+    """Reformats specified columns in a DataFrame from hexadecimal strings to bytes.
 
     Parameters
     ----------
@@ -78,6 +75,7 @@ def _reformat_varbinary_columns(
     -------
     DataFrame
         The modified DataFrame with specified columns converted to bytes.
+
     """
     for col in varbinary_columns:
         df[col] = df[col].apply(lambda x: bytes.fromhex(x[2:]) if pd.notnull(x) else x)
@@ -93,9 +91,8 @@ def _reformat_unknown_columns(df: DataFrame, unknown_columns: list[str]) -> Data
 def _handle_column_types(
     name: str,
     d_type: str,
-) -> Tuple[Any, List[str], List[str]]:
-    """
-    Process a single column type and handle special cases.
+) -> tuple[Any, list[str], list[str]]:
+    """Process a single column type and handle special cases.
 
     Parameters
     ----------
@@ -110,6 +107,7 @@ def _handle_column_types(
         Returns a tuple containing:
         - The PostgreSQL type for this column
         - Lists of column names requiring special treatment (varbinary and unknown)
+
     """
     varbinary_cols = []
     unknown_cols = []
@@ -139,8 +137,7 @@ def _handle_column_types(
 
 
 def dune_result_to_df(result: ExecutionResult) -> TypedDataFrame:
-    """
-    Converts a Dune query result into a DataFrame with PostgreSQL-compatible data types.
+    """Convert a Dune query result into a DataFrame with Postgres-compatible data types.
 
     This function maps Dune's data types to PostgreSQL-compatible types and
     reformats columns of type `varbinary` to bytes for database compatibility.
@@ -155,13 +152,14 @@ def dune_result_to_df(result: ExecutionResult) -> TypedDataFrame:
     TypedDataFrame
         A tuple consisting of the DataFrame with the query results and a dictionary
         mapping column names to PostgreSQL-compatible data types.
+
     """
     metadata = result.metadata
     dtypes = {}
     varbinary_cols = []
     unknown_cols = []
 
-    for name, d_type in zip(metadata.column_names, metadata.column_types):
+    for name, d_type in zip(metadata.column_names, metadata.column_types, strict=False):
         pg_type, _varbinary_cols, _unknown_cols = _handle_column_types(name, d_type)
         dtypes[name] = pg_type
         varbinary_cols.extend(_varbinary_cols)
@@ -175,29 +173,32 @@ def dune_result_to_df(result: ExecutionResult) -> TypedDataFrame:
 
 
 class DuneSource(Source[TypedDataFrame], ABC):
-    """
-    A class representing Dune as a data source for retrieving query results.
+    """A class representing Dune as a data source for retrieving query results.
 
-    This class interacts with the Dune Analytics API to execute queries and fetch results
-    in a DataFrame format, with appropriate data type conversions.
+    This class interacts with the Dune Analytics API to execute queries and
+    fetch results in a DataFrame format, with appropriate data type conversions.
 
     Attributes
     ----------
     client : DuneClient
-        An instance of DuneClient initialized with the API key for connecting to Dune Analytics.
+        An instance of DuneClient initialized with the API key for connecting to
+        Dune Analytics.
     query : QueryBase
         The query to be executed on Dune Analytics.
     poll_frequency : int
-        Frequency in seconds at which the query execution status is polled (default is 1 second).
+        Frequency in seconds at which the query execution status is polled
+        (default is 1 second).
 
     Methods
     -------
     validate() -> bool
         Validates the source setup (currently always returns True).
     fetch() -> TypedDataFrame
-        Executes the Dune query and retrieves the result as a DataFrame with associated types.
+        Executes the Dune query and retrieves the result as a DataFrame
+        with associated types.
     is_empty(data: TypedDataFrame) -> bool
         Checks if the retrieved data is empty.
+
     """
 
     def __init__(
@@ -213,10 +214,12 @@ class DuneSource(Source[TypedDataFrame], ABC):
         super().__init__()
 
     def validate(self) -> bool:
+        """Validate the configuration."""
         # Nothing I can think of to validate here...
         return True
 
     async def fetch(self) -> TypedDataFrame:
+        """Fetch data from the source."""
         # TODO(dune-client): Update Async Dune Client with "run_query" method.
         await self.client.connect()
         response = await self.client.refresh(
@@ -229,4 +232,5 @@ class DuneSource(Source[TypedDataFrame], ABC):
         return dune_result_to_df(response.result)
 
     def is_empty(self, data: TypedDataFrame) -> bool:
+        """Check if the provided DataFrame is empty."""
         return data[0].empty

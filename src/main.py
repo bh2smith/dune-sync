@@ -1,13 +1,13 @@
 # pragma: no cover
-"""
-Main entry point for the dune-sync application.
+"""Main entry point for the dune-sync application.
 
 This module initializes the runtime configuration and executes the configured jobs
 sequentially. Each job typically consists of:
 1. Extracting data from a source (Dune Analytics or Postgres)
 2. Loading the data into a destination (Dune Analytics or Postgres)
 
-The configuration is loaded from a YAML file (defaults to config.yaml in the project root).
+The configuration is loaded from a YAML file
+(defaults to config.yaml in the project root).
 
 Usage:
     python -m src.main [--config PATH]
@@ -18,10 +18,11 @@ Arguments:
 Environment Variables:
     Required environment variables depend on the configured sources and destinations.
     Typically includes database connection strings and API keys.
+
 """
+
 import argparse
 import asyncio
-
 from pathlib import Path
 
 from src import root_path
@@ -30,8 +31,7 @@ from src.logger import log
 
 
 async def main() -> None:
-    """
-    Main function that loads configuration and executes jobs sequentially.
+    """Load configuration and execute jobs asyncronously.
 
     The function:
     1. Parses command line arguments
@@ -43,6 +43,7 @@ async def main() -> None:
         FileNotFoundError: If config file is not found
         yaml.YAMLError: If config file is invalid
         Various exceptions depending on job configuration and execution
+
     """
     parser = argparse.ArgumentParser(
         description="Dune Sync - Data synchronization tool"
@@ -58,7 +59,9 @@ async def main() -> None:
     config = RuntimeConfig.load_from_yaml(args.config)
 
     tasks = [job.run() for job in config.jobs]
-    for job, completed_task in zip(config.jobs, asyncio.as_completed(tasks)):
+    for job, completed_task in zip(
+        config.jobs, asyncio.as_completed(tasks), strict=False
+    ):
         await completed_task
         log.info("Job completed: %s", job)
 

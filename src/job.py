@@ -1,6 +1,4 @@
-"""
-Job execution logic for the dune-sync package.
-"""
+"""Job execution logic for the dune-sync package."""
 
 from __future__ import annotations
 
@@ -8,13 +6,12 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
-from src.interfaces import Source, Destination
+from src.interfaces import Destination, Source
 from src.logger import log
 
 
 class Database(Enum):
-    """
-    Enum for possible data sources/destinations.
+    """Enum for possible data sources/destinations.
 
     Values:
         POSTGRES: PostgreSQL database
@@ -28,8 +25,7 @@ class Database(Enum):
 
     @classmethod
     def from_string(cls, value: str) -> Database:
-        """
-        Create a Database enum from a string value.
+        """Create a Database enum from a string value.
 
         Args:
             value (str): String representation of the database type
@@ -39,6 +35,7 @@ class Database(Enum):
 
         Raises:
             ValueError: If the provided string doesn't match any known database type
+
         """
         try:
             return cls(value.lower())
@@ -48,8 +45,7 @@ class Database(Enum):
 
 @dataclass
 class Job:
-    """
-    Base class for all data synchronization jobs.
+    """Base class for all data synchronization jobs.
 
     A job represents a single data transfer operation from a source
     to a destination. It handles the extraction and loading of data
@@ -58,14 +54,14 @@ class Job:
     Attributes:
         source (Source[Any]): The data source to extract from
         destination (Destination[Any]): The destination to load data into
+
     """
 
     source: Source[Any]
     destination: Destination[Any]
 
     async def run(self) -> None:
-        """
-        Execute the job by fetching data from the source and saving it to the destination.
+        """Execute the job by fetching from the source and saving to the destination.
 
         The method will:
         1. Fetch data from the source
@@ -75,6 +71,7 @@ class Job:
 
         Note:
             No exception is raised for empty result sets, only a warning is logged.
+
         """
         df = await self.source.fetch()
         if not self.source.is_empty(df):

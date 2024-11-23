@@ -1,6 +1,4 @@
-"""
-Destination logic for Dune Analytics.
-"""
+"""Destination logic for Dune Analytics."""
 
 from dune_client.client import DuneClient
 from dune_client.models import DuneError
@@ -11,8 +9,8 @@ from src.logger import log
 
 
 class DuneDestination(Destination[DataFrame]):
-    """
-    A class representing as Dune as a destination.
+    """A class representing as Dune as a destination.
+
     Uses the Dune API to upload CSV data to a table.
 
     Attributes
@@ -21,6 +19,7 @@ class DuneDestination(Destination[DataFrame]):
         The API key used for accessing the Dune Analytics API.
     table_name : str
         The name of the table where the query results will be stored.
+
     """
 
     def __init__(self, api_key: str, table_name: str):
@@ -29,12 +28,14 @@ class DuneDestination(Destination[DataFrame]):
         super().__init__()
 
     def validate(self) -> bool:
-        """Validates the destination setup (currently a placeholder that returns True)."""
+        """Validate the destination setup.
+
+        (currently a placeholder that returns True).
+        """
         return True
 
     def save(self, data: DataFrame) -> None:
-        """
-        Uploads a DataFrame to Dune as a CSV.
+        """Upload a DataFrame to Dune as a CSV.
 
         Parameters
         ----------
@@ -49,6 +50,7 @@ class DuneDestination(Destination[DataFrame]):
             If there's an issue communicating with the Dune API.
         ValueError
             For any data processing issues prior to the upload.
+
         """
         try:
             log.debug("Uploading DF to Dune...")
