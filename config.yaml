@@ -38,7 +38,7 @@ jobs:
 
   - name: Sync Parameterized Dune Query with Multiple Types to Postgres
     source:
-      ref: Dune1
+      ref: Dune
       query_id: 4273244
       query_engine: medium
       poll_frequency: 5
