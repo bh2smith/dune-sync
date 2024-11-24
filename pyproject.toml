@@ -3,8 +3,8 @@ name = "dune-sync"
 dynamic = ['version', 'dependencies']
 
 [tool.poetry]
+package-mode = false
 name = "dune-sync"
-version = "0.2.0"
 description = ""
 authors = [
     "Benjamin Smith <bh2smith@users.noreply.github.com>",
@@ -20,6 +20,7 @@ sqlalchemy = "*"
 python-dotenv = "*"
 psycopg2-binary = "*"
 tomli = "*"
+pyyaml = "*"
 
 [tool.poetry.dev-dependencies]
 black = "*"
