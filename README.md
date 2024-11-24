@@ -107,6 +107,7 @@ python -m src.main --config config.yaml
 The project uses a Makefile to streamline development tasks. Here are the available commands:
 
 - `make install`: Creates a virtual environment and installs all development dependencies
+- `make update`: Check for new versions of dependencies and install them
 - `make fmt`: Formats code using black
 - `make lint`: Runs pylint for code quality checks
 - `make types`: Performs static type checking with mypy
@@ -118,8 +119,9 @@ The project uses a Makefile to streamline development tasks. Here are the availa
 To get started with development:
 
 ```shell
+python -m pip install poetry  # install poetry which is used to manage the project's dependencies
 make install  # Set up virtual environment
-source .venv/bin/activate  # Activate virtual environment
+python -m poetry shell  # Activate virtual environment
 make check  # Verify code quality
 make test   # Run tests
 ```

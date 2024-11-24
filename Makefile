@@ -4,14 +4,11 @@ PIP = $(VENV)/bin/pip
 PROJECT_ROOT = src
 
 
-$(VENV)/bin/activate: requirements/dev.txt
-	python3 -m venv $(VENV)
-	$(PIP) install --upgrade pip
-	$(PIP) install -r requirements/dev.txt
-
-
 install:
-	make $(VENV)/bin/activate
+	python -m poetry install
+
+update:
+	python -m poetry update
 
 clean:
 	rm -rf __pycache__
