@@ -23,8 +23,8 @@ stderr_handler.setLevel(logging.ERROR)
 
 # Configure log formatter
 formatter = logging.Formatter(
-    fmt='%(asctime)s [%(levelname)s] %(name)s:%(module)s.%(funcName)s:%(lineno)d - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
+    fmt="%(asctime)s [%(levelname)s] %(name)s:%(module)s.%(funcName)s:%(lineno)d - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
 )
 stdout_handler.setFormatter(formatter)
 stderr_handler.setFormatter(formatter)
@@ -33,7 +33,7 @@ stderr_handler.setFormatter(formatter)
 logging.basicConfig(
     level=getenv("LOG_LEVEL", "INFO"),
     handlers=[stdout_handler, stderr_handler],
-    force=True  # Ensure we override any existing configuration
+    force=True,  # Ensure we override any existing configuration
 )
 
 log = logging.getLogger("dune-sync")
