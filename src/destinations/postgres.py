@@ -9,7 +9,7 @@ from sqlalchemy.sql import text
 from src.interfaces import Destination, TypedDataFrame
 from src.logger import log
 
-TableExistsPolicy = Literal["append", "replace", "upsert", "fail"]
+TableExistsPolicy = Literal["append", "replace", "upsert"]
 
 
 class PostgresDestination(Destination[TypedDataFrame]):
