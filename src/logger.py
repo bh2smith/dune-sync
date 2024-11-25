@@ -8,7 +8,7 @@ from os import getenv
 class InfoFilter(logging.Filter):
     """Filter that only allows records at INFO or WARNING level."""
 
-    def filter(self, record):
+    def filter(self, record: logging.LogRecord) -> bool:
         """Return True if we should log this record."""
         return record.levelno not in (logging.ERROR, logging.CRITICAL)
 
@@ -23,7 +23,10 @@ stderr_handler.setLevel(logging.ERROR)
 
 # Configure log formatter
 formatter = logging.Formatter(
-    fmt="%(asctime)s [%(levelname)s] %(name)s:%(module)s.%(funcName)s:%(lineno)d - %(message)s",
+    fmt=(
+        "%(asctime)s [%(levelname)s] %(name)s:%(module)s."
+        "%(funcName)s:%(lineno)d - %(message)s"
+    ),
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 stdout_handler.setFormatter(formatter)
