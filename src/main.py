@@ -23,11 +23,40 @@ Environment Variables:
 
 import argparse
 import asyncio
+import time
+import uuid
 from pathlib import Path
+from typing import Any
+
+from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
 
 from src import root_path
 from src.config import RuntimeConfig
 from src.logger import log
+
+
+def log_job_metrics(job_metrics: dict[str, Any]) -> None:
+    """Foo."""
+    registry = CollectorRegistry()
+
+    job_success_timestamp = Gauge(
+        name="job_last_success_unixtime",
+        documentation="Last time a batch job successfully finished",
+        registry=registry,
+    )
+    job_success_timestamp.set_to_current_time()
+
+    job_duration_metric = Gauge(
+        name="job_last_success_duration",
+        documentation="How long did the last job take to run",
+        registry=registry,
+    )
+    job_duration_metric.set(job_metrics["duration"])
+    push_to_gateway(
+        gateway="localhost:9091",
+        job=f'dune-sync-{job_metrics["run_id"]}',
+        registry=registry,
+    )
 
 
 async def main() -> None:
@@ -57,12 +86,23 @@ async def main() -> None:
     args = parser.parse_args()
 
     config = RuntimeConfig.load_from_yaml(args.config)
+    run_id = uuid.uuid4().hex
 
+    log.info("Run ID: %s", run_id)
     tasks = [job.run() for job in config.jobs]
     for job, completed_task in zip(
         config.jobs, asyncio.as_completed(tasks), strict=False
     ):
+        job_start = time.perf_counter()
         await completed_task
+        job_duration = time.perf_counter() - job_start
+
+        job_metrics = {
+            "duration": job_duration,
+            "name": job.name,
+            "run_id": run_id,
+        }
+        log_job_metrics(job_metrics)
         log.info("Job completed: %s", job)
 
 
