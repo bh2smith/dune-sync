@@ -31,7 +31,7 @@ from src.logger import log
 
 
 async def main() -> None:
-    """Load configuration and execute jobs asyncronously.
+    """Load configuration and execute jobs asynchronously.
 
     The function:
     1. Parses command line arguments
