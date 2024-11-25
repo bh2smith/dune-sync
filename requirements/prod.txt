@@ -1,7 +1,0 @@
-dune-client>=1.7.7
-pandas
-sqlalchemy
-python-dotenv
-psycopg2-binary
-tomli
-pyyaml

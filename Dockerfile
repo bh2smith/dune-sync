@@ -1,9 +1,11 @@
-FROM python:3.12-alpine
+FROM python:3.13-alpine
 
+RUN python -m pip install poetry
 RUN mkdir /app
 COPY src /app/src
-COPY requirements/prod.txt ./requirements.txt
-RUN python -m pip install -r ./requirements.txt
-USER 1000
+COPY poetry.lock /app/poetry.lock
+COPY pyproject.toml /app/pyproject.toml
 WORKDIR /app
+RUN POETRY_VIRTUALENVS_CREATE=false python -m poetry install
+USER 1000
 ENTRYPOINT [ "python", "-m" , "src.main"]
