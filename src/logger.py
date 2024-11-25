@@ -10,7 +10,7 @@ class InfoFilter(logging.Filter):
 
     def filter(self, record):
         """Return True if we should log this record."""
-        return record.levelno in (logging.INFO, logging.WARNING)
+        return record.levelno not in (logging.ERROR, logging.CRITICAL)
 
 
 # Create handlers for stdout and stderr
