@@ -9,7 +9,7 @@ from dune_client.models import DuneError
 
 from src.destinations.dune import DuneDestination
 from src.destinations.postgres import PostgresDestination
-from tests.db_util import create_table, drop_table, raw_exec
+from tests.db_util import create_table, drop_table, raw_exec, select_star
 
 
 class DuneDestinationTest(unittest.TestCase):
@@ -204,6 +204,65 @@ class PostgresDestinationTest(unittest.TestCase):
         )
         # Passes!
         self.assertEqual(None, pg_dest.validate_unique_constraints())
+
+        # Clean up
+        drop_table(pg_dest.engine, table_name)
+
+    def test_upsert(self):
+        table_name = "test_upsert"
+        pg_dest = PostgresDestination(
+            db_url=self.db_url,
+            table_name=table_name,
+            if_exists="upsert",
+            conflict_columns=["id"],
+        )
+        df1 = pd.DataFrame({"id": [1, 2], "value": ["alice", "bob"]})
+        df2 = pd.DataFrame({"id": [3, 4], "value": ["chuck", "dave"]})
+
+        drop_table(pg_dest.engine, table_name)
+        # This upsert would create table (since it doesn't exist yet)
+        pg_dest.upsert((df1, {}))
+        self.assertEqual(
+            [{"id": 1, "value": "alice"}, {"id": 2, "value": "bob"}],
+            select_star(pg_dest.engine, table_name),
+        )
+        # Add id constraint:
+        raw_exec(
+            pg_dest.engine,
+            query_str=f"""
+                ALTER TABLE {table_name} 
+                ADD CONSTRAINT {table_name}_id_unique 
+                UNIQUE (id);
+                """,
+        )
+        # This would insert with no conflict or update.
+        pg_dest.upsert((df2, {}))
+        self.assertEqual(
+            [
+                {"id": 1, "value": "alice"},
+                {"id": 2, "value": "bob"},
+                {"id": 3, "value": "chuck"},
+                {"id": 4, "value": "dave"},
+            ],
+            select_star(pg_dest.engine, table_name),
+        )
+        # overwrite some columns with max
+        pg_dest.upsert(
+            (
+                pd.DataFrame({"id": [3, 4, 5], "value": ["max", "max", "erik"]}),
+                {},
+            )
+        )
+        self.assertEqual(
+            [
+                {"id": 1, "value": "alice"},
+                {"id": 2, "value": "bob"},
+                {"id": 3, "value": "max"},
+                {"id": 4, "value": "max"},
+                {"id": 5, "value": "erik"},
+            ],
+            select_star(pg_dest.engine, table_name),
+        )
 
         # Clean up
         drop_table(pg_dest.engine, table_name)
