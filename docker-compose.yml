@@ -41,7 +41,7 @@ services:
     image: grafana/grafana
     container_name: grafana
     volumes:
-      - grafana_data:/var/lib/grafana
+      - ./grafana/data:/var/lib/grafana
       - ./grafana/datasources:/etc/grafana/datasources
       - ./grafana/dashboards:/etc/grafana/dashboards
     environment:
@@ -52,10 +52,10 @@ services:
       - "3000:3000"
     networks:
       - monitor-net
+    user: "1000"
 volumes:
   pg_data:
   prometheus_data: { }
-  grafana_data: { }
 networks:
   monitor-net:
     driver: bridge

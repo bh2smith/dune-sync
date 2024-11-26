@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass
 from enum import Enum
+from time import perf_counter
 from typing import Any
 
 from src.interfaces import Destination, Source
 from src.logger import log
+from src.metrics import log_job_metrics
 
 
 class Database(Enum):
@@ -74,11 +77,28 @@ class Job:
             No exception is raised for empty result sets, only a warning is logged.
 
         """
+        run_id = uuid.uuid4().hex
+
+        start = perf_counter()
+
         df = await self.source.fetch()
         if not self.source.is_empty(df):
             self.destination.save(df)
         else:
+            # TODO should this case still submit metrics?
             log.warning("No Query results found! Skipping write")
+
+        duration = perf_counter() - start
+
+        log.info("Job completed: %s [RunID %s]", self.name, run_id)
+
+        metrics = {
+            "job": self,
+            "duration": duration,
+            "name": self.name,
+            "run_id": run_id,
+        }
+        log_job_metrics(metrics)
 
     def __str__(self) -> str:
         """Return a string representation of the job to use in logging."""
