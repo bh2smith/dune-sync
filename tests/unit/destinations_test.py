@@ -4,10 +4,12 @@ from logging import ERROR, WARNING
 from unittest.mock import patch
 
 import pandas as pd
+import sqlalchemy
 from dune_client.models import DuneError
 
 from src.destinations.dune import DuneDestination
 from src.destinations.postgres import PostgresDestination
+from tests.db_util import create_table, drop_table, raw_exec
 
 
 class DuneDestinationTest(unittest.TestCase):
@@ -98,9 +100,13 @@ class DuneDestinationTest(unittest.TestCase):
 
 
 class PostgresDestinationTest(unittest.TestCase):
+
+    def setUp(self):
+        self.db_url = "postgresql://postgres:postgres@localhost:5432/postgres"
+
     def test_saving_empty_df(self):
         pg_dest = PostgresDestination(
-            db_url="postgresql://postgres:postgres@localhost:5432/postgres",
+            db_url=self.db_url,
             table_name="foo",
         )
         df = pd.DataFrame([])
@@ -110,3 +116,94 @@ class PostgresDestinationTest(unittest.TestCase):
         self.assertIn(
             "DataFrame is empty. Skipping save to PostgreSQL.", logs.output[0]
         )
+
+    def test_failed_validation(self):
+        # No conflict columns
+        with self.assertRaises(ValueError) as ctx, self.assertLogs(
+            level="ERROR"
+        ) as logs:
+            PostgresDestination(
+                db_url=self.db_url,
+                table_name="foo",
+                if_exists="upsert",
+                conflict_columns=[],
+            )
+
+        self.assertIn(
+            "Config for PostgresDestination is invalid", ctx.exception.args[0]
+        )
+        self.assertIn("Upsert without conflict columns.", logs.output[0])
+
+    def test_table_exists(self):
+        table_name = "test_table_exists"
+        pg_dest = PostgresDestination(
+            db_url=self.db_url,
+            table_name=table_name,
+        )
+        drop_table(pg_dest.engine, table_name)
+        self.assertEqual(False, pg_dest.table_exists())
+
+        create_table(pg_dest.engine, table_name)
+        # Now table should exist
+        self.assertEqual(True, pg_dest.table_exists())
+
+        # Cleanup
+        drop_table(pg_dest.engine, table_name)
+
+    def test_validate_unique_constraints(self):
+        table_name = "test_validate_unique_constraints"
+        pg_dest = PostgresDestination(
+            db_url=self.db_url,
+            table_name=table_name,
+            if_exists="upsert",
+            conflict_columns=["id"],
+        )
+        drop_table(pg_dest.engine, table_name)
+        # No such table.
+        with self.assertRaises(sqlalchemy.exc.NoSuchTableError) as _:
+            pg_dest.validate_unique_constraints()
+
+        create_table(pg_dest.engine, table_name)
+        with self.assertRaises(ValueError) as ctx, self.assertLogs(
+            level="ERROR"
+        ) as logs:
+            pg_dest.validate_unique_constraints()
+
+        self.assertIn(
+            "No unique or exclusion constraint found. See error logs.",
+            ctx.exception.args[0],
+        )
+        self.assertIn(f"ALTER TABLE {table_name} ADD CONSTRAINT", logs.output[0])
+
+        # Add constraint
+        raw_exec(
+            pg_dest.engine,
+            query_str=f"""
+        ALTER TABLE {table_name} 
+        ADD CONSTRAINT {table_name}_id_unique 
+        UNIQUE (id);
+        """,
+        )
+        self.assertEqual(None, pg_dest.validate_unique_constraints())
+
+        # Multi Column Constraint
+        pg_dest.conflict_columns = ["id", "value"]
+
+        # raises without constraint.
+        with self.assertRaises(ValueError) as _:
+            pg_dest.validate_unique_constraints()
+
+        # Add constraint
+        raw_exec(
+            pg_dest.engine,
+            query_str=f"""
+        ALTER TABLE {table_name} 
+        ADD CONSTRAINT id_value_unique 
+        UNIQUE (id, value);
+        """,
+        )
+        # Passes!
+        self.assertEqual(None, pg_dest.validate_unique_constraints())
+
+        # Clean up
+        drop_table(pg_dest.engine, table_name)

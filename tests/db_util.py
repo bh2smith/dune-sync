@@ -17,3 +17,27 @@ def query_pg(engine: sqlalchemy.engine.Engine, query_str: str) -> list[dict[str,
         }
         for row in rows
     ]
+
+
+def create_table(engine: sqlalchemy.engine.Engine, table_name: str) -> None:
+    with engine.connect() as connection:
+        # Begin a transaction explicitly for DDL
+        with connection.begin():
+            result = connection.execute(
+                text(f"CREATE TABLE IF NOT EXISTS {table_name} (id SERIAL, value TEXT);")
+            )
+            print("Table created successfully.", result)
+
+
+def drop_table(engine: sqlalchemy.engine.Engine, table_name: str) -> None:
+    with engine.connect() as connection:
+        # Begin a transaction explicitly for DDL
+        with connection.begin():
+            connection.execute(text(f"DROP TABLE IF EXISTS {table_name};"))
+
+
+def raw_exec(engine: sqlalchemy.engine.Engine, query_str: str) -> None:
+    with engine.connect() as connection:
+        # Begin a transaction explicitly for DDL
+        with connection.begin():
+            connection.execute(text(query_str))

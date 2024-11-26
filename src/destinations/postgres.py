@@ -59,7 +59,7 @@ class PostgresDestination(Destination[TypedDataFrame]):
     def validate(self) -> bool:
         """Validate the destination setup."""
         if self.if_exists == "upsert" and len(self.conflict_columns) == 0:
-            log.error("Postgres Destination can't upsert without conflict columns.")
+            log.error("Upsert without conflict columns.")
             return False
         return True
 
