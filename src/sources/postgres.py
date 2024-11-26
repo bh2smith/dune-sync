@@ -9,6 +9,7 @@ from pandas import DataFrame
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 
+from src.env import Env
 from src.interfaces import Source
 from src.logger import log
 
@@ -148,7 +149,7 @@ class PostgresSource(Source[DataFrame]):
             The SQL query to execute or the path to a `.sql` file containing the query.
 
         """
-        self.query_string = query_string
+        self.query_string = Env.interpolate(query_string)
 
         if self.query_string.lower().endswith(".sql"):
             self._set_query_string_from_file()

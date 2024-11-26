@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import patch
 
 import pandas as pd
+import pytest
 import sqlalchemy
 from dune_client.models import ExecutionResult, ResultMetadata
 from sqlalchemy import BIGINT
@@ -73,7 +74,7 @@ class TestSourceUtils(unittest.TestCase):
         pd.testing.assert_frame_equal(pd.DataFrame([]), result)
 
 
-class TestPostgresSource(unittest.TestCase):
+class TestPostgresSource(unittest.IsolatedAsyncioTestCase):
     @classmethod
     def setUpClass(cls):
         cls.env_patcher = patch.dict(
@@ -81,6 +82,7 @@ class TestPostgresSource(unittest.TestCase):
             {
                 "DUNE_API_KEY": "test_key",
                 "DB_URL": "postgresql://postgres:postgres@localhost:5432/postgres",
+                "LIMIT_CLAUSE": "LIMIT 100",
             },
             clear=True,
         )
@@ -131,3 +133,38 @@ class TestPostgresSource(unittest.TestCase):
         )
         df = pd.DataFrame([])
         self.assertTrue(src.is_empty(df))
+
+    @pytest.mark.asyncio
+    @patch("src.sources.postgres.pd.read_sql_query")
+    async def test_query_string_envsubst(self, mock_read_sql_query):
+        source = PostgresSource(
+            db_url="postgresql://postgres:postgres@localhost:5432/postgres",
+            query_string="SELECT 1 ${LIMIT_CLAUSE};",
+        )
+        await source.fetch()
+        mock_read_sql_query.assert_called_once()
+        self.assertEqual(
+            "SELECT 1 LIMIT 100;", mock_read_sql_query.call_args_list[0][0][0]
+        )
+
+        mock_read_sql_query.reset_mock()
+
+        source = PostgresSource(
+            db_url="postgresql://postgres:postgres@localhost:5432/postgres",
+            query_string="SELECT 1 $LIMIT_CLAUSE;",
+        )
+        await source.fetch()
+        mock_read_sql_query.assert_called_once()
+        self.assertEqual(
+            "SELECT 1 LIMIT 100;", mock_read_sql_query.call_args_list[0][0][0]
+        )
+
+        mock_read_sql_query.reset_mock()
+
+        with self.assertRaises(KeyError):
+            source = PostgresSource(
+                db_url="postgresql://postgres:postgres@localhost:5432/postgres",
+                query_string="SELECT 1 $NONEXISTENT_VAR;",
+            )
+            await source.fetch()
+        mock_read_sql_query.assert_not_called()
