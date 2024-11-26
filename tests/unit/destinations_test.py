@@ -275,7 +275,6 @@ class PostgresDestinationTest(unittest.TestCase):
             if_exists="replace",
         )
         df1 = pd.DataFrame({"id": [1, 2], "value": ["alice", "bob"]})
-        
 
         drop_table(pg_dest.engine, table_name)
 

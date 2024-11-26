@@ -203,10 +203,6 @@ class PostgresDestination(Destination[TypedDataFrame]):
         # Convert the DataFrame to a list of dictionaries for SQLAlchemy to use
         records = df.to_dict(orient="records")
 
-        # Debugging: Print statement for confirmation
-        print("Insert Statement:\n", insert_stmt)
-        print("Records:\n", records)
-
         # Execute the upsert
         with self.engine.connect() as conn:
             with conn.begin():
