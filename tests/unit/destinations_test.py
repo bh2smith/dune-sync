@@ -117,7 +117,7 @@ class PostgresDestinationTest(unittest.TestCase):
         )
 
     def test_failed_validation(self):
-        # No conflict columns
+        # No index columns
         with (
             self.assertRaises(ValueError) as ctx,
             self.assertLogs(level="ERROR") as logs,
@@ -132,7 +132,7 @@ class PostgresDestinationTest(unittest.TestCase):
         self.assertIn(
             "Config for PostgresDestination is invalid", ctx.exception.args[0]
         )
-        self.assertIn("Upsert without conflict columns.", logs.output[0])
+        self.assertIn("Upsert without index columns.", logs.output[0])
 
     def test_table_exists(self):
         table_name = "test_table_exists"

@@ -3,8 +3,8 @@
 from typing import Literal
 
 import sqlalchemy
-from sqlalchemy import create_engine, inspect
-from sqlalchemy.sql import text
+from sqlalchemy import MetaData, Table, create_engine, inspect
+from sqlalchemy.dialects.postgresql import insert
 
 from src.interfaces import Destination, TypedDataFrame
 from src.logger import log
@@ -59,12 +59,12 @@ class PostgresDestination(Destination[TypedDataFrame]):
     def validate(self) -> bool:
         """Validate the destination setup."""
         if self.if_exists == "upsert" and len(self.index_columns) == 0:
-            log.error("Upsert without conflict columns.")
+            log.error("Upsert without index columns.")
             return False
         return True
 
     def validate_unique_constraints(self) -> None:
-        """Validate table has unique or exclusion constraint for conflict columns."""
+        """Validate table has unique or exclusion constraint for index columns."""
         inspector = inspect(self.engine)
         constraints = inspector.get_unique_constraints(self.table_name)
         index_columns_set = set(self.index_columns)
@@ -81,7 +81,7 @@ class PostgresDestination(Destination[TypedDataFrame]):
             f"{constraint_name} UNIQUE ({index_columns_str});"
         )
         message = (
-            f"The ON CONFLICT clause requires a unique or exclusion constraint "
+            "The ON CONFLICT clause requires a unique or exclusion constraint "
             f"on the column(s): {index_columns_str}. "
             f"Please ensure the table '{table}' has the necessary constraint. "
             f"To fix this, you can run the following SQL command:\n{suggestion}"
@@ -179,31 +179,15 @@ class PostgresDestination(Destination[TypedDataFrame]):
         # Get all column names from the DataFrame
         columns = df.columns.tolist()
 
-        # Generate the column list for the INSERT clause
-        column_list = ", ".join(columns)
+        metadata = MetaData()
+        table = Table(self.table_name, metadata, autoload_with=self.engine)
+        statement = insert(table).values(**{col: df[col] for col in columns})
 
-        # Generate the parameterized values for the INSERT clause
-        value_placeholders = ", ".join(f":{col}" for col in columns)
-
-        # Generate the update assignments for the ON CONFLICT clause
-        update_assignments = ", ".join(
-            f"{col} = EXCLUDED.{col}"
-            for col in columns
-            if col not in self.index_columns
+        statement = statement.on_conflict_do_update(
+            index_elements=self.index_columns,
+            set_={col: getattr(statement.excluded, col) for col in columns},
         )
-
-        # Define the insert statement with an ON CONFLICT clause
-        insert_stmt = f"""
-        INSERT INTO {self.table_name} ({column_list})
-        VALUES ({value_placeholders})
-        ON CONFLICT ({', '.join(self.index_columns)}) DO UPDATE SET
-            {update_assignments};
-        """
-
-        # Convert the DataFrame to a list of dictionaries for SQLAlchemy to use
         records = df.to_dict(orient="records")
-
-        # Execute the upsert
         with self.engine.connect() as conn:
             with conn.begin():
-                conn.execute(text(insert_stmt), records)
+                conn.execute(statement, records)
