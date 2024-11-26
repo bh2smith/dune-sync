@@ -100,7 +100,6 @@ class DuneDestinationTest(unittest.TestCase):
 
 
 class PostgresDestinationTest(unittest.TestCase):
-
     def setUp(self):
         self.db_url = "postgresql://postgres:postgres@localhost:5432/postgres"
 
@@ -118,21 +117,22 @@ class PostgresDestinationTest(unittest.TestCase):
         )
 
     def test_failed_validation(self):
-        # No conflict columns
-        with self.assertRaises(ValueError) as ctx, self.assertLogs(
-            level="ERROR"
-        ) as logs:
+        # No index columns
+        with (
+            self.assertRaises(ValueError) as ctx,
+            self.assertLogs(level="ERROR") as logs,
+        ):
             PostgresDestination(
                 db_url=self.db_url,
                 table_name="foo",
                 if_exists="upsert",
-                conflict_columns=[],
+                index_columns=[],
             )
 
         self.assertIn(
             "Config for PostgresDestination is invalid", ctx.exception.args[0]
         )
-        self.assertIn("Upsert without conflict columns.", logs.output[0])
+        self.assertIn("Upsert without index columns.", logs.output[0])
 
     def test_table_exists(self):
         table_name = "test_table_exists"
@@ -156,7 +156,7 @@ class PostgresDestinationTest(unittest.TestCase):
             db_url=self.db_url,
             table_name=table_name,
             if_exists="upsert",
-            conflict_columns=["id"],
+            index_columns=["id"],
         )
         drop_table(pg_dest.engine, table_name)
         # No such table.
@@ -164,9 +164,10 @@ class PostgresDestinationTest(unittest.TestCase):
             pg_dest.validate_unique_constraints()
 
         create_table(pg_dest.engine, table_name)
-        with self.assertRaises(ValueError) as ctx, self.assertLogs(
-            level="ERROR"
-        ) as logs:
+        with (
+            self.assertRaises(ValueError) as ctx,
+            self.assertLogs(level="ERROR") as logs,
+        ):
             pg_dest.validate_unique_constraints()
 
         self.assertIn(
@@ -179,15 +180,15 @@ class PostgresDestinationTest(unittest.TestCase):
         raw_exec(
             pg_dest.engine,
             query_str=f"""
-        ALTER TABLE {table_name} 
-        ADD CONSTRAINT {table_name}_id_unique 
+        ALTER TABLE {table_name}
+        ADD CONSTRAINT {table_name}_id_unique
         UNIQUE (id);
         """,
         )
         self.assertEqual(None, pg_dest.validate_unique_constraints())
 
         # Multi Column Constraint
-        pg_dest.conflict_columns = ["id", "value"]
+        pg_dest.index_columns = ["id", "value"]
 
         # raises without constraint.
         with self.assertRaises(ValueError) as _:
@@ -197,8 +198,8 @@ class PostgresDestinationTest(unittest.TestCase):
         raw_exec(
             pg_dest.engine,
             query_str=f"""
-        ALTER TABLE {table_name} 
-        ADD CONSTRAINT id_value_unique 
+        ALTER TABLE {table_name}
+        ADD CONSTRAINT id_value_unique
         UNIQUE (id, value);
         """,
         )
@@ -214,7 +215,7 @@ class PostgresDestinationTest(unittest.TestCase):
             db_url=self.db_url,
             table_name=table_name,
             if_exists="upsert",
-            conflict_columns=["id"],
+            index_columns=["id"],
         )
         df1 = pd.DataFrame({"id": [1, 2], "value": ["alice", "bob"]})
         df2 = pd.DataFrame({"id": [3, 4], "value": ["chuck", "dave"]})
@@ -230,8 +231,8 @@ class PostgresDestinationTest(unittest.TestCase):
         raw_exec(
             pg_dest.engine,
             query_str=f"""
-                ALTER TABLE {table_name} 
-                ADD CONSTRAINT {table_name}_id_unique 
+                ALTER TABLE {table_name}
+                ADD CONSTRAINT {table_name}_id_unique
                 UNIQUE (id);
                 """,
         )
