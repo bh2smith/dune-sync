@@ -266,3 +266,37 @@ class PostgresDestinationTest(unittest.TestCase):
 
         # Clean up
         drop_table(pg_dest.engine, table_name)
+
+    def test_replace(self):
+        table_name = "test_replace"
+        pg_dest = PostgresDestination(
+            db_url=self.db_url,
+            table_name=table_name,
+            if_exists="replace",
+        )
+        df1 = pd.DataFrame({"id": [1, 2], "value": ["alice", "bob"]})
+        
+
+        drop_table(pg_dest.engine, table_name)
+
+        pg_dest.replace((df1, {}))
+        self.assertEqual(
+            [
+                {"id": 1, "value": "alice"},
+                {"id": 2, "value": "bob"},
+            ],
+            select_star(pg_dest.engine, table_name),
+        )
+
+        df2 = pd.DataFrame({"id": [3, 4], "value": ["chuck", "dave"]})
+        pg_dest.replace((df2, {}))
+        self.assertEqual(
+            [
+                {"id": 3, "value": "chuck"},
+                {"id": 4, "value": "dave"},
+            ],
+            select_star(pg_dest.engine, table_name),
+        )
+
+        # Clean up
+        drop_table(pg_dest.engine, table_name)
