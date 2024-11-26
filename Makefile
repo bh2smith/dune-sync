@@ -18,6 +18,7 @@ fmt:
 
 lint:
 	ruff check .
+	pylint src/
 
 types:
 	mypy ${PROJECT_ROOT}/ --strict
