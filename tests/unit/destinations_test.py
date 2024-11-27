@@ -269,6 +269,67 @@ class PostgresDestinationTest(unittest.TestCase):
         # Clean up
         drop_table(pg_dest.engine, table_name)
 
+    def test_insert_ignore(self):
+        table_name = "test_insert_ignore"
+        pg_dest = PostgresDestination(
+            db_url=self.db_url,
+            table_name=table_name,
+            if_exists="insert_ignore",
+            index_columns=["id"],
+        )
+        df1 = pd.DataFrame({"id": [1, 2], "value": ["alice", "bob"]})
+        df2 = pd.DataFrame({"id": [3, 4], "value": ["chuck", "dave"]})
+
+        drop_table(pg_dest.engine, table_name)
+        # This upsert would create table (since it doesn't exist yet)
+        pg_dest.insert((df1, {}), on_conflict="nothing")
+        self.assertEqual(
+            [{"id": 1, "value": "alice"}, {"id": 2, "value": "bob"}],
+            select_star(pg_dest.engine, table_name),
+        )
+        # Add id constraint:
+        raw_exec(
+            pg_dest.engine,
+            query_str=f"""
+                ALTER TABLE {table_name}
+                ADD CONSTRAINT {table_name}_id_unique
+                UNIQUE (id);
+                """,
+        )
+        # This would insert with no conflict or update.
+        pg_dest.insert((df2, {}), on_conflict="nothing")
+        self.assertEqual(
+            [
+                {"id": 1, "value": "alice"},
+                {"id": 2, "value": "bob"},
+                {"id": 3, "value": "chuck"},
+                {"id": 4, "value": "dave"},
+            ],
+            select_star(pg_dest.engine, table_name),
+        )
+        # overwrite some columns with max
+        pg_dest.insert(
+            (
+                pd.DataFrame({"id": [3, 4, 5], "value": ["max", "max", "erik"]}),
+                {},
+            ),
+            on_conflict="nothing",
+        )
+        self.assertEqual(
+            [
+                {"id": 1, "value": "alice"},
+                {"id": 2, "value": "bob"},
+                {"id": 3, "value": "chuck"},
+                {"id": 4, "value": "dave"},
+                {"id": 5, "value": "erik"},
+            ],
+            select_star(pg_dest.engine, table_name),
+        )
+
+        # Clean up
+        drop_table(pg_dest.engine, table_name)
+
+
     def test_replace(self):
         table_name = "test_replace"
         pg_dest = PostgresDestination(
