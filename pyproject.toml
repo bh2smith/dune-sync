@@ -21,6 +21,7 @@ python-dotenv = "*"
 psycopg2-binary = "*"
 tomli = "*"
 pyyaml = "*"
+prometheus-client = "*"
 
 [tool.poetry.dev-dependencies]
 black = "*"

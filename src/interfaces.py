@@ -1,7 +1,7 @@
 """Interface definitions for the dune-sync package."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, Protocol, TypeVar
 
 from pandas import DataFrame
 
@@ -9,6 +9,12 @@ TypedDataFrame = tuple[DataFrame, dict[str, Any]]
 
 # This will represent your data type (DataFrame, dict, etc.)
 T = TypeVar("T")
+
+
+class Named(Protocol):
+    """Represents any class with name field."""
+
+    name: str
 
 
 class Validate(ABC):

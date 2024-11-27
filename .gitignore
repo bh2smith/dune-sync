@@ -10,3 +10,6 @@ __pycache__/
 .mypy_cache
 .coverage
 coverage.xml
+
+# Metrics
+grafana

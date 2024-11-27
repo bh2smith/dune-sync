@@ -25,7 +25,6 @@ import asyncio
 
 from src.args import Args
 from src.config import RuntimeConfig
-from src.logger import log
 
 
 async def main() -> None:
@@ -54,11 +53,8 @@ async def main() -> None:
     )
 
     tasks = [job.run() for job in jobs_to_run]
-    for job, completed_task in zip(
-        config.jobs, asyncio.as_completed(tasks), strict=False
-    ):
+    for completed_task in asyncio.as_completed(tasks):
         await completed_task
-        log.info("Job completed: %s", job)
 
 
 if __name__ == "__main__":
