@@ -1,5 +1,7 @@
 """Source logic for Dune Analytics."""
 
+from __future__ import annotations
+
 import json
 import re
 from abc import ABC
@@ -9,6 +11,7 @@ import pandas as pd
 from dune_client.client_async import AsyncDuneClient
 from dune_client.models import ExecutionResult
 from dune_client.query import QueryBase
+from dune_client.types import ParameterType, QueryParameter
 from pandas import DataFrame
 from sqlalchemy import BIGINT, BOOLEAN, DATE, TIMESTAMP, VARCHAR
 from sqlalchemy.dialects.postgresql import (
@@ -234,3 +237,44 @@ class DuneSource(Source[TypedDataFrame], ABC):
     def is_empty(self, data: TypedDataFrame) -> bool:
         """Check if the provided DataFrame is empty."""
         return data[0].empty
+
+
+def parse_query_parameters(params: list[dict[str, Any]]) -> list[QueryParameter]:
+    """Convert a list of parameter dictionaries into Dune query parameters.
+
+    Args:
+        params (list[dict[str, Any]]): List of parameter dictionaries, each containing:
+            - name: Parameter name
+            - type: Parameter type (TEXT, NUMBER, DATE, or ENUM)
+            - value: Parameter value
+
+    Returns:
+        list[QueryParameter]: List of properly typed Dune query parameters
+
+    Raises:
+        ValueError: If an unknown parameter type is encountered
+
+    """
+    query_params = []
+    for param in params:
+        name = param["name"]
+        param_type = ParameterType.from_string(param["type"])
+        value = param["value"]
+
+        if param_type == ParameterType.TEXT:
+            query_params.append(QueryParameter.text_type(name, value))
+        elif param_type == ParameterType.NUMBER:
+            query_params.append(QueryParameter.number_type(name, value))
+        elif param_type == ParameterType.DATE:
+            query_params.append(QueryParameter.date_type(name, value))
+        elif param_type == ParameterType.ENUM:
+            query_params.append(QueryParameter.enum_type(name, value))
+        else:
+            # Can't happen.
+            # this code is actually unreachable because the case it handles
+            # causes an exception to be thrown earlier, in ParameterType.from_string()
+            raise ValueError(
+                f"Unknown parameter type: {param['type']}"
+            )  # pragma: no cover
+
+    return query_params

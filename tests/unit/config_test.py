@@ -5,7 +5,8 @@ from unittest.mock import patch
 
 from dune_client.types import QueryParameter
 
-from src.config import Env, RuntimeConfig, parse_query_parameters
+from src.config import Env, RuntimeConfig
+from src.sources.dune import parse_query_parameters
 from tests import config_root
 
 

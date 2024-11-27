@@ -11,13 +11,12 @@ from typing import Any
 import yaml
 from dotenv import load_dotenv
 from dune_client.query import QueryBase
-from dune_client.types import ParameterType, QueryParameter
 
 from src.destinations.dune import DuneDestination
 from src.destinations.postgres import PostgresDestination
 from src.interfaces import Destination, Source
 from src.job import Database, Job
-from src.sources.dune import DuneSource
+from src.sources.dune import DuneSource, parse_query_parameters
 from src.sources.postgres import PostgresSource
 
 
@@ -115,47 +114,6 @@ class Env:
         except KeyError as e:
             missing_var = str(e).strip("'")
             raise KeyError(f"Environment variable '{missing_var}' not found. ") from e
-
-
-def parse_query_parameters(params: list[dict[str, Any]]) -> list[QueryParameter]:
-    """Convert a list of parameter dictionaries into Dune query parameters.
-
-    Args:
-        params (list[dict[str, Any]]): List of parameter dictionaries, each containing:
-            - name: Parameter name
-            - type: Parameter type (TEXT, NUMBER, DATE, or ENUM)
-            - value: Parameter value
-
-    Returns:
-        list[QueryParameter]: List of properly typed Dune query parameters
-
-    Raises:
-        ValueError: If an unknown parameter type is encountered
-
-    """
-    query_params = []
-    for param in params:
-        name = param["name"]
-        param_type = ParameterType.from_string(param["type"])
-        value = param["value"]
-
-        if param_type == ParameterType.TEXT:
-            query_params.append(QueryParameter.text_type(name, value))
-        elif param_type == ParameterType.NUMBER:
-            query_params.append(QueryParameter.number_type(name, value))
-        elif param_type == ParameterType.DATE:
-            query_params.append(QueryParameter.date_type(name, value))
-        elif param_type == ParameterType.ENUM:
-            query_params.append(QueryParameter.enum_type(name, value))
-        else:
-            # Can't happen.
-            # this code is actually unreachable because the case it handles
-            # causes an exception to be thrown earlier, in ParameterType.from_string()
-            raise ValueError(
-                f"Unknown parameter type: {param['type']}"
-            )  # pragma: no cover
-
-    return query_params
 
 
 @dataclass
