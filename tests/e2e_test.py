@@ -188,21 +188,21 @@ class TestEndToEnd(unittest.IsolatedAsyncioTestCase):
 
         # everything is okay
         mock_dune_client.return_value = good_client
-        conf = RuntimeConfig.load_from_yaml(config_root / "dune_to_postgres.yaml")
+        conf = RuntimeConfig.load(config_root / "dune_to_postgres.yaml")
         await conf.jobs[0].run()
 
         mock_dune_client.reset_mock()
 
         # Dune returned a None result
         mock_dune_client.return_value = bad_client_returned_none
-        conf = RuntimeConfig.load_from_yaml(config_root / "dune_to_postgres.yaml")
+        conf = RuntimeConfig.load(config_root / "dune_to_postgres.yaml")
         with self.assertRaises(ValueError):
             await conf.jobs[0].run()
 
         # Dune returned an empty result
         mock_dune_client.reset_mock()
         mock_dune_client.return_value = empty_result_client
-        conf = RuntimeConfig.load_from_yaml(config_root / "dune_to_postgres.yaml")
+        conf = RuntimeConfig.load(config_root / "dune_to_postgres.yaml")
         with self.assertLogs(level=WARNING) as logs:
             await conf.jobs[0].run()
 

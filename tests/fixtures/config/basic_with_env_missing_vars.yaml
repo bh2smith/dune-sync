@@ -1,0 +1,18 @@
+---
+data_sources:
+  - name: dune
+    type: dune
+    key: ${DUNE_API_KEY}
+  - name: postgres
+    type: postgres
+    key: ${DB_URL}
+
+jobs:
+  - name: Some job
+    source:
+      ref: postgres
+      table_name: foo_table
+      query_string: SELECT 1;
+    destination:
+      ref: dune
+      table_name: $UNDEFINED_VAR

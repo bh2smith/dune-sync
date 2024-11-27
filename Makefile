@@ -15,9 +15,11 @@ clean:
 
 fmt:
 	black ./
+	ruff check --fix .
 
 lint:
 	ruff check .
+	pylint src/
 
 types:
 	mypy ${PROJECT_ROOT}/ --strict

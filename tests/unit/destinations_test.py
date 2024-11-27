@@ -4,10 +4,12 @@ from logging import ERROR, WARNING
 from unittest.mock import patch
 
 import pandas as pd
+import sqlalchemy
 from dune_client.models import DuneError
 
 from src.destinations.dune import DuneDestination
 from src.destinations.postgres import PostgresDestination
+from tests.db_util import create_table, drop_table, raw_exec, select_star
 
 
 class DuneDestinationTest(unittest.TestCase):
@@ -98,9 +100,12 @@ class DuneDestinationTest(unittest.TestCase):
 
 
 class PostgresDestinationTest(unittest.TestCase):
+    def setUp(self):
+        self.db_url = "postgresql://postgres:postgres@localhost:5432/postgres"
+
     def test_saving_empty_df(self):
         pg_dest = PostgresDestination(
-            db_url="postgresql://postgres:postgres@localhost:5432/postgres",
+            db_url=self.db_url,
             table_name="foo",
         )
         df = pd.DataFrame([])
@@ -110,3 +115,188 @@ class PostgresDestinationTest(unittest.TestCase):
         self.assertIn(
             "DataFrame is empty. Skipping save to PostgreSQL.", logs.output[0]
         )
+
+    def test_failed_validation(self):
+        # No index columns
+        with (
+            self.assertRaises(ValueError) as ctx,
+            self.assertLogs(level="ERROR") as logs,
+        ):
+            PostgresDestination(
+                db_url=self.db_url,
+                table_name="foo",
+                if_exists="upsert",
+                index_columns=[],
+            )
+
+        self.assertIn(
+            "Config for PostgresDestination is invalid", ctx.exception.args[0]
+        )
+        self.assertIn("Upsert without index columns.", logs.output[0])
+
+    def test_table_exists(self):
+        table_name = "test_table_exists"
+        pg_dest = PostgresDestination(
+            db_url=self.db_url,
+            table_name=table_name,
+        )
+        drop_table(pg_dest.engine, table_name)
+        self.assertEqual(False, pg_dest.table_exists())
+
+        create_table(pg_dest.engine, table_name)
+        # Now table should exist
+        self.assertEqual(True, pg_dest.table_exists())
+
+        # Cleanup
+        drop_table(pg_dest.engine, table_name)
+
+    def test_validate_unique_constraints(self):
+        table_name = "test_validate_unique_constraints"
+        pg_dest = PostgresDestination(
+            db_url=self.db_url,
+            table_name=table_name,
+            if_exists="upsert",
+            index_columns=["id"],
+        )
+        drop_table(pg_dest.engine, table_name)
+        # No such table.
+        with self.assertRaises(sqlalchemy.exc.NoSuchTableError) as _:
+            pg_dest.validate_unique_constraints()
+
+        create_table(pg_dest.engine, table_name)
+        with (
+            self.assertRaises(ValueError) as ctx,
+            self.assertLogs(level="ERROR") as logs,
+        ):
+            pg_dest.validate_unique_constraints()
+
+        self.assertIn(
+            "No unique or exclusion constraint found. See error logs.",
+            ctx.exception.args[0],
+        )
+        self.assertIn(f"ALTER TABLE {table_name} ADD CONSTRAINT", logs.output[0])
+
+        # Add constraint
+        raw_exec(
+            pg_dest.engine,
+            query_str=f"""
+        ALTER TABLE {table_name}
+        ADD CONSTRAINT {table_name}_id_unique
+        UNIQUE (id);
+        """,
+        )
+        self.assertEqual(None, pg_dest.validate_unique_constraints())
+
+        # Multi Column Constraint
+        pg_dest.index_columns = ["id", "value"]
+
+        # raises without constraint.
+        with self.assertRaises(ValueError) as _:
+            pg_dest.validate_unique_constraints()
+
+        # Add constraint
+        raw_exec(
+            pg_dest.engine,
+            query_str=f"""
+        ALTER TABLE {table_name}
+        ADD CONSTRAINT id_value_unique
+        UNIQUE (id, value);
+        """,
+        )
+        # Passes!
+        self.assertEqual(None, pg_dest.validate_unique_constraints())
+
+        # Clean up
+        drop_table(pg_dest.engine, table_name)
+
+    def test_upsert(self):
+        table_name = "test_upsert"
+        pg_dest = PostgresDestination(
+            db_url=self.db_url,
+            table_name=table_name,
+            if_exists="upsert",
+            index_columns=["id"],
+        )
+        df1 = pd.DataFrame({"id": [1, 2], "value": ["alice", "bob"]})
+        df2 = pd.DataFrame({"id": [3, 4], "value": ["chuck", "dave"]})
+
+        drop_table(pg_dest.engine, table_name)
+        # This upsert would create table (since it doesn't exist yet)
+        pg_dest.upsert((df1, {}))
+        self.assertEqual(
+            [{"id": 1, "value": "alice"}, {"id": 2, "value": "bob"}],
+            select_star(pg_dest.engine, table_name),
+        )
+        # Add id constraint:
+        raw_exec(
+            pg_dest.engine,
+            query_str=f"""
+                ALTER TABLE {table_name}
+                ADD CONSTRAINT {table_name}_id_unique
+                UNIQUE (id);
+                """,
+        )
+        # This would insert with no conflict or update.
+        pg_dest.upsert((df2, {}))
+        self.assertEqual(
+            [
+                {"id": 1, "value": "alice"},
+                {"id": 2, "value": "bob"},
+                {"id": 3, "value": "chuck"},
+                {"id": 4, "value": "dave"},
+            ],
+            select_star(pg_dest.engine, table_name),
+        )
+        # overwrite some columns with max
+        pg_dest.upsert(
+            (
+                pd.DataFrame({"id": [3, 4, 5], "value": ["max", "max", "erik"]}),
+                {},
+            )
+        )
+        self.assertEqual(
+            [
+                {"id": 1, "value": "alice"},
+                {"id": 2, "value": "bob"},
+                {"id": 3, "value": "max"},
+                {"id": 4, "value": "max"},
+                {"id": 5, "value": "erik"},
+            ],
+            select_star(pg_dest.engine, table_name),
+        )
+
+        # Clean up
+        drop_table(pg_dest.engine, table_name)
+
+    def test_replace(self):
+        table_name = "test_replace"
+        pg_dest = PostgresDestination(
+            db_url=self.db_url,
+            table_name=table_name,
+            if_exists="replace",
+        )
+        df1 = pd.DataFrame({"id": [1, 2], "value": ["alice", "bob"]})
+
+        drop_table(pg_dest.engine, table_name)
+
+        pg_dest.replace((df1, {}))
+        self.assertEqual(
+            [
+                {"id": 1, "value": "alice"},
+                {"id": 2, "value": "bob"},
+            ],
+            select_star(pg_dest.engine, table_name),
+        )
+
+        df2 = pd.DataFrame({"id": [3, 4], "value": ["chuck", "dave"]})
+        pg_dest.replace((df2, {}))
+        self.assertEqual(
+            [
+                {"id": 3, "value": "chuck"},
+                {"id": 4, "value": "dave"},
+            ],
+            select_star(pg_dest.engine, table_name),
+        )
+
+        # Clean up
+        drop_table(pg_dest.engine, table_name)
