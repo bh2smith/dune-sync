@@ -20,6 +20,16 @@ def log_job_metrics(job_metrics: dict[str, Any]) -> None:
     )
     job_success_timestamp.set_to_current_time()
 
+    # this is intentionally a Gauge rather than a Counter as per the prometheus
+    # documentation: "Do not use a counter to expose a value that can decrease."
+    # https://prometheus.io/docs/concepts/metric_types/
+    job_failure_counter = Gauge(
+        name="job_failure_count",
+        documentation="Number of failed jobs",
+        registry=registry,
+    )
+    job_failure_counter.inc(not job_metrics["success"])
+
     job_duration_metric = Gauge(
         name="job_last_success_duration",
         documentation="How long did the job take to run (in seconds)",

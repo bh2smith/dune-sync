@@ -80,24 +80,30 @@ class Job:
         run_id = uuid.uuid4().hex
 
         start = perf_counter()
+        success = False
+        try:
+            df = await self.source.fetch()
+            if not self.source.is_empty(df):
+                self.destination.save(df)
+            else:
+                log.warning("No Query results found! Skipping write")
+            success = True
+            log.info("Job completed: %s [RunID %s]", self.name, run_id)
 
-        df = await self.source.fetch()
-        if not self.source.is_empty(df):
-            self.destination.save(df)
-        else:
-            log.warning("No Query results found! Skipping write")
-
-        duration = perf_counter() - start
-
-        log.info("Job completed: %s [RunID %s]", self.name, run_id)
-
-        metrics = {
-            "job": self,
-            "duration": duration,
-            "name": self.name,
-            "run_id": run_id,
-        }
-        log_job_metrics(metrics)
+        except Exception as e:
+            success = False
+            log.error("Job failed: %s %s [RunID %s]", self.name, e, run_id)
+            raise
+        finally:
+            duration = perf_counter() - start
+            metrics = {
+                "job": self,
+                "duration": duration,
+                "name": self.name,
+                "run_id": run_id,
+                "success": success,
+            }
+            log_job_metrics(metrics)
 
     def __str__(self) -> str:
         """Return a string representation of the job to use in logging."""
