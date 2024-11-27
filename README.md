@@ -18,6 +18,15 @@ The configuration file consists of three main sections:
 - `data_sources`: Defines available databases
 - `jobs`: Defines synchronization jobs that connect sources to destinations
 
+The config file may contain environment variable placeholders in
+[envsubst](https://www.gnu.org/software/gettext/manual/html_node/envsubst-Invocation.html)-compatible format:
+- `$VAR_NAME`
+- `${VAR_NAME}`
+- `$varname`
+
+**Note**: Every variable referenced this way __must__ be defined at runtime,
+otherwise the program will exit with an error.
+
 #### Data Source Definitions
 
 Sources are defined as a list of configurations, each containing:

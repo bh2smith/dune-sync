@@ -6,18 +6,17 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 from string import Template
-from typing import Any
+from typing import Any, TextIO
 
 import yaml
 from dotenv import load_dotenv
 from dune_client.query import QueryBase
-from dune_client.types import ParameterType, QueryParameter
 
 from src.destinations.dune import DuneDestination
 from src.destinations.postgres import PostgresDestination
 from src.interfaces import Destination, Source
 from src.job import Database, Job
-from src.sources.dune import DuneSource
+from src.sources.dune import DuneSource, parse_query_parameters
 from src.sources.postgres import PostgresSource
 
 
@@ -117,47 +116,6 @@ class Env:
             raise KeyError(f"Environment variable '{missing_var}' not found. ") from e
 
 
-def parse_query_parameters(params: list[dict[str, Any]]) -> list[QueryParameter]:
-    """Convert a list of parameter dictionaries into Dune query parameters.
-
-    Args:
-        params (list[dict[str, Any]]): List of parameter dictionaries, each containing:
-            - name: Parameter name
-            - type: Parameter type (TEXT, NUMBER, DATE, or ENUM)
-            - value: Parameter value
-
-    Returns:
-        list[QueryParameter]: List of properly typed Dune query parameters
-
-    Raises:
-        ValueError: If an unknown parameter type is encountered
-
-    """
-    query_params = []
-    for param in params:
-        name = param["name"]
-        param_type = ParameterType.from_string(param["type"])
-        value = param["value"]
-
-        if param_type == ParameterType.TEXT:
-            query_params.append(QueryParameter.text_type(name, value))
-        elif param_type == ParameterType.NUMBER:
-            query_params.append(QueryParameter.number_type(name, value))
-        elif param_type == ParameterType.DATE:
-            query_params.append(QueryParameter.date_type(name, value))
-        elif param_type == ParameterType.ENUM:
-            query_params.append(QueryParameter.enum_type(name, value))
-        else:
-            # Can't happen.
-            # this code is actually unreachable because the case it handles
-            # causes an exception to be thrown earlier, in ParameterType.from_string()
-            raise ValueError(
-                f"Unknown parameter type: {param['type']}"
-            )  # pragma: no cover
-
-    return query_params
-
-
 @dataclass
 class RuntimeConfig:
     """A class to represent the runtime configuration settings.
@@ -182,7 +140,15 @@ class RuntimeConfig:
             )
 
     @classmethod
-    def load_from_yaml(cls, file_path: Path | str = "config.yaml") -> RuntimeConfig:
+    def read_yaml(cls, file_handle: TextIO) -> Any:
+        """Load YAML from text, substituting any environment variables referenced."""
+        Env.load()
+        text = str(file_handle.read())
+        text = Env.interpolate(text)
+        return yaml.safe_load(text)
+
+    @classmethod
+    def load(cls, file_path: Path | str = "config.yaml") -> RuntimeConfig:
         """Load and parse a YAML configuration file.
 
         Args:
@@ -197,8 +163,8 @@ class RuntimeConfig:
             ValueError: If the configuration contains invalid database types
 
         """
-        with open(file_path, "rb") as _handle:
-            data = yaml.safe_load(_handle)
+        with open(file_path, encoding="utf-8") as _handle:
+            data = cls.read_yaml(_handle)
 
         # Load data sources map
         sources = {}

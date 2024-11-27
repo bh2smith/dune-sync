@@ -20,6 +20,7 @@ Environment Variables:
     Typically includes database connection strings and API keys.
 
 """
+
 import asyncio
 
 from src.args import Args
@@ -43,7 +44,7 @@ async def main() -> None:
 
     """
     args = Args.from_command_line()
-    config = RuntimeConfig.load_from_yaml(args.config)
+    config = RuntimeConfig.load(args.config)
 
     # Filter jobs if specific ones were requested
     jobs_to_run = (
