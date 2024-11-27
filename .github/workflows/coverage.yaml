@@ -22,8 +22,13 @@ jobs:
           - ${{ github.workspace }}:/repo
       pushgateway:
         image: prom/pushgateway
+        options: >-
+          --health-cmd="wget --spider --quiet http://localhost:9091/metrics || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
         ports:
-          - "9091:9091"
+          - 9091:9091
     steps:
       - uses: actions/checkout@v4
       - name: Setup Python
