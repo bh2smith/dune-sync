@@ -11,7 +11,8 @@ class TestMetrics(unittest.TestCase):
         job.name = "mock-job"
 
         log_job_metrics(
-            "https://localhost:9090", {"duration": 1, "job": job, "success": False}
+            "https://localhost:9090",
+            {"duration": 1, "job": job, "success": False, "name": job.name},
         )
         self.assertEqual(1, mock_push.call_count)
         self.assertEqual(

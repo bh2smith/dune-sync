@@ -5,11 +5,25 @@ from collections.abc import Awaitable, Callable, Iterable, Mapping
 from functools import wraps
 from os import getenv as env
 from time import perf_counter
-from typing import Any
+from typing import Any, Protocol
 
 from prometheus_client import CollectorRegistry, Counter, Gauge, push_to_gateway
 
 from src.logger import log
+
+
+class JobProtocol(Protocol):
+    """Represent a Job class from src/job.py."""
+
+    name: str
+    source: Any
+    destination: Any
+
+    async def run(self) -> None:
+        """Represent the run method of the Job class."""
+
+    def __str__(self) -> str:
+        """Represent the __str__ method of the Job class."""
 
 
 def log_job_metrics(prometheus_url: str, job_metrics: dict[str, Any]) -> None:
@@ -39,7 +53,7 @@ def log_job_metrics(prometheus_url: str, job_metrics: dict[str, Any]) -> None:
     job_duration_metric.set(job_metrics["duration"])
     push_to_gateway(
         gateway=prometheus_url,
-        job=f'dune-sync-{job_metrics["job"].name}',
+        job=f'dune-sync-{job_metrics["name"]}',
         registry=registry,
     )
 
@@ -51,7 +65,7 @@ def collect_metrics(
 
     @wraps(func)
     async def wrapper(
-        self: Any, *args: Iterable[Any], **kwargs: Mapping[Any, Any]
+        self: JobProtocol, *args: Iterable[Any], **kwargs: Mapping[Any, Any]
     ) -> Any:
         if not (prometheus_url := env("PROMETHEUS_PUSHGATEWAY_URL")):
             return await func(self, *args, **kwargs)
@@ -70,7 +84,6 @@ def collect_metrics(
         finally:
             duration = perf_counter() - start
             metrics = {
-                "job": self,
                 "duration": duration,
                 "name": self.name,
                 "run_id": run_id,
