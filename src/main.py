@@ -58,9 +58,7 @@ async def main() -> None:
     config = RuntimeConfig.load_from_yaml(args.config)
 
     tasks = [job.run() for job in config.jobs]
-    for _job, completed_task in zip(
-        config.jobs, asyncio.as_completed(tasks), strict=False
-    ):
+    for completed_task in asyncio.as_completed(tasks):
         await completed_task
 
 
