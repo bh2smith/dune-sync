@@ -56,7 +56,7 @@ async def main() -> None:
     )
     args = parser.parse_args()
 
-    config = RuntimeConfig.load_from_yaml(args.config)
+    config = RuntimeConfig.load(args.config)
 
     tasks = [job.run() for job in config.jobs]
     for job, completed_task in zip(

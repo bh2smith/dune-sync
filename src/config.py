@@ -6,7 +6,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 from string import Template
-from typing import Any
+from typing import Any, TextIO
 
 import yaml
 from dotenv import load_dotenv
@@ -131,7 +131,15 @@ class RuntimeConfig:
     jobs: list[Job]
 
     @classmethod
-    def load_from_yaml(cls, file_path: Path | str = "config.yaml") -> RuntimeConfig:
+    def read_yaml(cls, file_handle: TextIO) -> Any:
+        """Load YAML from text, substituting any environment variables referenced."""
+        Env.load()
+        text = str(file_handle.read())
+        text = Env.interpolate(text)
+        return yaml.safe_load(text)
+
+    @classmethod
+    def load(cls, file_path: Path | str = "config.yaml") -> RuntimeConfig:
         """Load and parse a YAML configuration file.
 
         Args:
@@ -146,8 +154,8 @@ class RuntimeConfig:
             ValueError: If the configuration contains invalid database types
 
         """
-        with open(file_path, "rb") as _handle:
-            data = yaml.safe_load(_handle)
+        with open(file_path, encoding="utf-8") as _handle:
+            data = cls.read_yaml(_handle)
 
         # Load data sources map
         sources = {}
