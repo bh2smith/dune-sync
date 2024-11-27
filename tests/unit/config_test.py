@@ -66,7 +66,10 @@ class TestRuntimeConfig(unittest.TestCase):
         config_file = config_root / "invalid_names.yaml"
         with self.assertRaises(ValueError) as context:
             RuntimeConfig.load_from_yaml(config_file.absolute())
-        self.assertIn("Duplicate job names found in configuration: jobName", str(context.exception))
+        self.assertIn(
+            "Duplicate job names found in configuration: jobName",
+            str(context.exception),
+        )
 
     def test_load_unsupported_conf(self):
         with self.assertRaises(ValueError) as context:
