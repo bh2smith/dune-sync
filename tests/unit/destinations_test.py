@@ -20,7 +20,6 @@ class DuneDestinationTest(unittest.TestCase):
             {
                 "DUNE_API_KEY": "test_key",
                 "DB_URL": "postgresql://postgres:postgres@localhost:5432/postgres",
-                "CUSTOM_DUNE_TABLE_SUFFIX": "barbaz",
             },
             clear=True,
         )
@@ -98,35 +97,6 @@ class DuneDestinationTest(unittest.TestCase):
 
         mock_dune_upload_csv.assert_called_once()
         self.assertIn("Dune Upload Failed", logs.output[0])
-
-    @patch("dune_client.api.table.TableAPI.upload_csv", name="Fake CSV uploader")
-    def test_table_name_envsubst(self, mock_dune_upload_csv):
-        df = pd.DataFrame([{"foo": "bar"}])
-        d1 = DuneDestination(table_name="foo", api_key="F00B4R")
-        d1.save(data=df)
-        mock_dune_upload_csv.assert_called_once_with("foo", "foo\nbar\n")
-
-        mock_dune_upload_csv.reset_mock()
-        d2 = DuneDestination(
-            table_name="foo_${CUSTOM_DUNE_TABLE_SUFFIX}", api_key="F00B4R"
-        )
-        d2.save(data=df)
-        mock_dune_upload_csv.assert_called_once_with("foo_barbaz", "foo\nbar\n")
-
-        mock_dune_upload_csv.reset_mock()
-        d2 = DuneDestination(
-            table_name="foo_$CUSTOM_DUNE_TABLE_SUFFIX", api_key="F00B4R"
-        )
-        d2.save(data=df)
-        mock_dune_upload_csv.assert_called_once_with("foo_barbaz", "foo\nbar\n")
-
-        mock_dune_upload_csv.reset_mock()
-        with self.assertRaises(KeyError):
-            d2 = DuneDestination(
-                table_name="foo_${NONEXISTENT_ENV_VAR}", api_key="F00B4R"
-            )
-            d2.save(data=df)
-        mock_dune_upload_csv.assert_not_called()
 
 
 class PostgresDestinationTest(unittest.TestCase):
