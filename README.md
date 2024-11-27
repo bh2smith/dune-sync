@@ -98,6 +98,8 @@ docker run --rm \
 # - Mount queries directory (if using SQL file paths)
     -v "$(pwd)/queries:/app/queries" \
     --config /app/my-config.yaml
+# - Specify jobs to run (if not specified, all jobs will be run)
+    --jobs job1 job2
 ```
 
 Note that postgres queries can also be file paths (they would also need to be mounted into the container).
@@ -108,7 +110,7 @@ Fill out the empty fields in [Sample Env](.env.sample) (e.g. `DUNE_API_KEY` and 
 
 ```shell
 docker-compose up -d # Starts postgres container (in the background)
-python -m src.main --config config.yaml
+python -m src.main [--config config.yaml] [--jobs d2p-test-1 p2d-test]
 ```
 
 ### Development Commands

@@ -130,6 +130,15 @@ class RuntimeConfig:
 
     jobs: list[Job]
 
+    def __post_init__(self) -> None:
+        """Validate that unique job names are used."""
+        job_names = [job.name for job in self.jobs]
+        if len(job_names) != len(set(job_names)):
+            duplicates = {name for name in job_names if job_names.count(name) > 1}
+            raise ValueError(
+                f"Duplicate job names found in configuration: {', '.join(duplicates)}"
+            )
+
     @classmethod
     def read_yaml(cls, file_handle: TextIO) -> Any:
         """Load YAML from text, substituting any environment variables referenced."""
@@ -260,7 +269,7 @@ class RuntimeConfig:
                 return PostgresDestination(
                     db_url=dest.key,
                     table_name=dest_config["table_name"],
-                    if_exists=dest_config["if_exists"],
+                    if_exists=dest_config.get("if_exists", "append"),
                     index_columns=dest_config.get("index_columns", []),
                 )
         raise ValueError(f"Unsupported destination_db type: {dest}")

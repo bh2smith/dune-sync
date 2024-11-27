@@ -1,0 +1,24 @@
+---
+data_sources:
+  - name: postgres
+    type: postgres
+    key: ${DB_URL}
+
+jobs:
+  - name: jobName
+    source:
+      ref: postgres
+      table_name: table1
+      query_string: SELECT 1;
+    destination:
+      ref: postgres
+      table_name: table2
+
+  - name: jobName
+    source:
+      ref: postgres
+      table_name: table1
+      query_string: SELECT 2;
+    destination:
+      ref: postgres
+      table_name: table2
