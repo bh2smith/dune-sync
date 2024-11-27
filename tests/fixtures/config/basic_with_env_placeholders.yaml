@@ -1,0 +1,39 @@
+---
+data_sources:
+  - name: dune
+    type: dune
+    key: ${DUNE_API_KEY}
+  - name: postgres
+    type: postgres
+    key: ${DB_URL}
+
+jobs:
+  - name: Download simple test query to local postgres
+    source:
+      ref: dune
+      query_id: $Query_ID
+      query_engine: medium
+      poll_frequency: ${POLL_FREQUENCY_DUNE_PG}
+      parameters:
+        - name: blockchain
+          value: $BLOCKCHAIN_NAME
+          type: ENUM
+        - name: blocktime
+          value: 2024-09-01 00:00:00
+          type: DATE
+        - name: result_limit
+          value: 10
+          type: NUMBER
+    destination:
+      ref: postgres
+      table_name: parameterized_results_4238114
+      if_exists: $WHAT_IF_EXISTS
+
+  - name: Some other job
+    source:
+      ref: postgres
+      table_name: foo_table
+      query_string: SELECT 1;
+    destination:
+      ref: dune
+      table_name: $table_name
