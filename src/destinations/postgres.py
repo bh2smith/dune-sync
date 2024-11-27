@@ -9,7 +9,7 @@ from sqlalchemy.dialects.postgresql import insert
 from src.interfaces import Destination, TypedDataFrame
 from src.logger import log
 
-TableExistsPolicy = Literal["append", "replace", "upsert"]
+TableExistsPolicy = Literal["append", "replace", "upsert", "insert_ignore"]
 
 
 class PostgresDestination(Destination[TypedDataFrame]):
@@ -26,7 +26,7 @@ class PostgresDestination(Destination[TypedDataFrame]):
         The name of the destination table in PostgreSQL where data will be saved.
     if_exists : TableExistsPolicy
         Policy for handling existing tables:
-            "replace", "append", "upsert" (default is "append").
+            "replace", "append", "upsert", "insert_ignore" (default is "append").
 
     Methods
     -------
@@ -125,7 +125,9 @@ class PostgresDestination(Destination[TypedDataFrame]):
             return
         match self.if_exists:
             case "upsert":
-                self.upsert(data)
+                self.insert(data, on_conflict="update")
+            case "insert_ignore":
+                self.insert(data, on_conflict="nothing")
             case "append":
                 self.append(data)
             case "replace":
@@ -164,8 +166,38 @@ class PostgresDestination(Destination[TypedDataFrame]):
                 dtype=dtypes,
             )
 
-    def upsert(self, data: TypedDataFrame) -> None:
-        """Upsert data from a DataFrame into a SQL table.
+    # def upsert(self, data: TypedDataFrame) -> None:
+    #     """Upsert data from a DataFrame into a SQL table.
+
+    #     :param data: Typed pandas DataFrame containing the data to upsert.
+    #     """
+    #     if not self.table_exists():
+    #         # Do append.
+    #         self.append(data)
+    #         return
+
+    #     self.validate_unique_constraints()
+    #     df, _ = data
+    #     # Get all column names from the DataFrame
+    #     columns = df.columns.tolist()
+
+    #     metadata = MetaData()
+    #     table = Table(self.table_name, metadata, autoload_with=self.engine)
+    #     statement = insert(table).values(**{col: df[col] for col in columns})
+
+    #     statement = statement.on_conflict_do_update(
+    #         index_elements=self.index_columns,
+    #         set_={col: getattr(statement.excluded, col) for col in columns},
+    #     )
+    #     records = df.to_dict(orient="records")
+    #     with self.engine.connect() as conn:
+    #         with conn.begin():
+    #             conn.execute(statement, records)
+
+    def insert(
+        self, data: TypedDataFrame, on_conflict: Literal["update", "nothing"]
+    ) -> None:
+        """Insert data from a DataFrame into a SQL table.
 
         :param data: Typed pandas DataFrame containing the data to upsert.
         """
@@ -183,10 +215,15 @@ class PostgresDestination(Destination[TypedDataFrame]):
         table = Table(self.table_name, metadata, autoload_with=self.engine)
         statement = insert(table).values(**{col: df[col] for col in columns})
 
-        statement = statement.on_conflict_do_update(
-            index_elements=self.index_columns,
-            set_={col: getattr(statement.excluded, col) for col in columns},
-        )
+        if on_conflict == "update":
+            statement = statement.on_conflict_do_update(
+                index_elements=self.index_columns,
+                set_={col: getattr(statement.excluded, col) for col in columns},
+            )
+        else:  # nothing
+            statement = statement.on_conflict_do_nothing(
+                index_elements=self.index_columns,
+            )
         records = df.to_dict(orient="records")
         with self.engine.connect() as conn:
             with conn.begin():
