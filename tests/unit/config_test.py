@@ -5,14 +5,13 @@ from unittest.mock import patch
 
 from dune_client.types import QueryParameter
 
-from src.config import RuntimeConfig, parse_query_parameters
-from src.env import Env
+from src.config import Env, RuntimeConfig, parse_query_parameters
 from tests import config_root
 
 
 class TestEnv(unittest.TestCase):
     @patch(
-        "src.env.load_dotenv"
+        "src.config.load_dotenv"
     )  # Mock load_dotenv to prevent loading the actual .env file
     @patch.dict(os.environ, {"API_KEY": "F00B4R", "MYVAR": "42"}, clear=True)
     def test_env_interpolate(self, mock_load_dotenv):

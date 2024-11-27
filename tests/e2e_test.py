@@ -172,7 +172,7 @@ class TestEndToEnd(unittest.IsolatedAsyncioTestCase):
 
     @pytest.mark.asyncio
     @patch("src.sources.dune.AsyncDuneClient")
-    @patch("src.env.load_dotenv")
+    @patch("src.config.load_dotenv")
     @patch.dict(os.environ, {"DUNE_API_KEY": "test_key", "DB_URL": DB_URL})
     async def test_dune_to_local_job_run(self, mock_env, mock_dune_client):
         good_client = AsyncMock(name="Mock Dune client that returns a result")
