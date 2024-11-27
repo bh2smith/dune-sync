@@ -303,7 +303,7 @@ class RuntimeConfig:
                 return PostgresDestination(
                     db_url=dest.key,
                     table_name=dest_config["table_name"],
-                    if_exists=dest_config["if_exists"],
+                    if_exists=dest_config.get("if_exists"),
                     index_columns=dest_config.get("index_columns", []),
                 )
         raise ValueError(f"Unsupported destination_db type: {dest}")
