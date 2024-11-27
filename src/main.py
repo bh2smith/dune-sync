@@ -20,12 +20,9 @@ Environment Variables:
     Typically includes database connection strings and API keys.
 
 """
-
-import argparse
 import asyncio
-from pathlib import Path
 
-from src import root_path
+from src.args import Args
 from src.config import RuntimeConfig
 from src.logger import log
 
@@ -45,20 +42,17 @@ async def main() -> None:
         Various exceptions depending on job configuration and execution
 
     """
-    parser = argparse.ArgumentParser(
-        description="Dune Sync - Data synchronization tool"
-    )
-    parser.add_argument(
-        "--config",
-        type=Path,
-        default=root_path.parent / "config.yaml",
-        help="Path to configuration file (default: config.yaml)",
-    )
-    args = parser.parse_args()
-
+    args = Args.from_command_line()
     config = RuntimeConfig.load_from_yaml(args.config)
 
-    tasks = [job.run() for job in config.jobs]
+    # Filter jobs if specific ones were requested
+    jobs_to_run = (
+        [job for job in config.jobs if job.name in args.jobs]
+        if args.jobs is not None
+        else config.jobs
+    )
+
+    tasks = [job.run() for job in jobs_to_run]
     for job, completed_task in zip(
         config.jobs, asyncio.as_completed(tasks), strict=False
     ):

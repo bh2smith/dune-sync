@@ -15,6 +15,7 @@ clean:
 
 fmt:
 	black ./
+	ruff check --fix .
 
 lint:
 	ruff check .

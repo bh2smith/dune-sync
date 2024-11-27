@@ -172,6 +172,15 @@ class RuntimeConfig:
 
     jobs: list[Job]
 
+    def __post_init__(self) -> None:
+        """Validate that unique job names are used."""
+        job_names = [job.name for job in self.jobs]
+        if len(job_names) != len(set(job_names)):
+            duplicates = {name for name in job_names if job_names.count(name) > 1}
+            raise ValueError(
+                f"Duplicate job names found in configuration: {', '.join(duplicates)}"
+            )
+
     @classmethod
     def load_from_yaml(cls, file_path: Path | str = "config.yaml") -> RuntimeConfig:
         """Load and parse a YAML configuration file.
