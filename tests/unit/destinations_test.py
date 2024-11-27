@@ -222,7 +222,7 @@ class PostgresDestinationTest(unittest.TestCase):
 
         drop_table(pg_dest.engine, table_name)
         # This upsert would create table (since it doesn't exist yet)
-        pg_dest.upsert((df1, {}))
+        pg_dest.insert((df1, {}), on_conflict="update")
         self.assertEqual(
             [{"id": 1, "value": "alice"}, {"id": 2, "value": "bob"}],
             select_star(pg_dest.engine, table_name),
@@ -237,7 +237,7 @@ class PostgresDestinationTest(unittest.TestCase):
                 """,
         )
         # This would insert with no conflict or update.
-        pg_dest.upsert((df2, {}))
+        pg_dest.insert((df2, {}), on_conflict="update")
         self.assertEqual(
             [
                 {"id": 1, "value": "alice"},
@@ -248,11 +248,12 @@ class PostgresDestinationTest(unittest.TestCase):
             select_star(pg_dest.engine, table_name),
         )
         # overwrite some columns with max
-        pg_dest.upsert(
+        pg_dest.insert(
             (
                 pd.DataFrame({"id": [3, 4, 5], "value": ["max", "max", "erik"]}),
                 {},
-            )
+            ),
+            on_conflict="update",
         )
         self.assertEqual(
             [
