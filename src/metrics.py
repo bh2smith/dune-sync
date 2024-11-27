@@ -5,25 +5,12 @@ from collections.abc import Awaitable, Callable, Iterable, Mapping
 from functools import wraps
 from os import getenv as env
 from time import perf_counter
-from typing import Any, Protocol
+from typing import Any
 
 from prometheus_client import CollectorRegistry, Counter, Gauge, push_to_gateway
 
+from src.interfaces import JobProtocol
 from src.logger import log
-
-
-class JobProtocol(Protocol):
-    """Represent a Job class from src/job.py."""
-
-    name: str
-    source: Any
-    destination: Any
-
-    async def run(self) -> None:
-        """Represent the run method of the Job class."""
-
-    def __str__(self) -> str:
-        """Represent the __str__ method of the Job class."""
 
 
 def log_job_metrics(prometheus_url: str, job_metrics: dict[str, Any]) -> None:

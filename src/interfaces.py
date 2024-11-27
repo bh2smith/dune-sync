@@ -1,7 +1,7 @@
 """Interface definitions for the dune-sync package."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, Protocol, TypeVar
 
 from pandas import DataFrame
 
@@ -9,6 +9,20 @@ TypedDataFrame = tuple[DataFrame, dict[str, Any]]
 
 # This will represent your data type (DataFrame, dict, etc.)
 T = TypeVar("T")
+
+
+class JobProtocol(Protocol):
+    """Represent a Job class from src/job.py."""
+
+    name: str
+    source: Any
+    destination: Any
+
+    async def run(self) -> None:
+        """Represent the run method of the Job class."""
+
+    def __str__(self) -> str:
+        """Represent the __str__ method of the Job class."""
 
 
 class Validate(ABC):
