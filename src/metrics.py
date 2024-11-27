@@ -1,17 +1,21 @@
 """Handle submitting metrics, logs and other interesting details about jobs."""
 
+import uuid
+from collections.abc import Awaitable, Callable, Iterable, Mapping
+from functools import wraps
 from os import getenv as env
+from time import perf_counter
 from typing import Any
 
 from prometheus_client import CollectorRegistry, Counter, Gauge, push_to_gateway
 
+from src.logger import log
 
-def log_job_metrics(job_metrics: dict[str, Any]) -> None:
+
+def log_job_metrics(prometheus_url: str, job_metrics: dict[str, Any]) -> None:
     """Log metrics about a job to a prometheus pushgateway."""
-    if not (prometheus_pushgateway_url := env("PROMETHEUS_PUSHGATEWAY_URL")):
-        return
-
     registry = CollectorRegistry()
+    log.info("Pushing metrics to Prometheus")
 
     job_success_timestamp = Gauge(
         name="job_last_success_unixtime",
@@ -34,7 +38,44 @@ def log_job_metrics(job_metrics: dict[str, Any]) -> None:
     )
     job_duration_metric.set(job_metrics["duration"])
     push_to_gateway(
-        gateway=prometheus_pushgateway_url,
+        gateway=prometheus_url,
         job=f'dune-sync-{job_metrics["job"].name}',
         registry=registry,
     )
+
+
+def collect_metrics(
+    func: Callable[..., Awaitable[Any]],
+) -> Callable[..., Awaitable[Any]]:
+    """Collect and submit metrics about a Job if a pushgateway is configured."""
+
+    @wraps(func)
+    async def wrapper(
+        self: Any, *args: Iterable[Any], **kwargs: Mapping[Any, Any]
+    ) -> Any:
+        if not (prometheus_url := env("PROMETHEUS_PUSHGATEWAY_URL")):
+            return await func(self, *args, **kwargs)
+
+        run_id = uuid.uuid4().hex
+        start = perf_counter()
+        success = False
+
+        try:
+            result = await func(self, *args, **kwargs)
+            success = True
+            return result
+        except Exception:
+            success = False
+            raise
+        finally:
+            duration = perf_counter() - start
+            metrics = {
+                "job": self,
+                "duration": duration,
+                "name": self.name,
+                "run_id": run_id,
+                "success": success,
+            }
+            log_job_metrics(prometheus_url, metrics)
+
+    return wrapper

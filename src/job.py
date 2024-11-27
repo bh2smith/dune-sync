@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-import uuid
 from dataclasses import dataclass
 from enum import Enum
-from time import perf_counter
 from typing import Any
 
 from src.interfaces import Destination, Source
 from src.logger import log
-from src.metrics import log_job_metrics
+from src.metrics import collect_metrics
 
 
 class Database(Enum):
@@ -64,6 +62,7 @@ class Job:
     source: Source[Any]
     destination: Destination[Any]
 
+    @collect_metrics
     async def run(self) -> None:
         """Execute the job by fetching from the source and saving to the destination.
 
@@ -77,33 +76,11 @@ class Job:
             No exception is raised for empty result sets, only a warning is logged.
 
         """
-        run_id = uuid.uuid4().hex
-
-        start = perf_counter()
-        success = False
-        try:
-            df = await self.source.fetch()
-            if not self.source.is_empty(df):
-                self.destination.save(df)
-            else:
-                log.warning("No Query results found! Skipping write")
-            success = True
-            log.info("Job completed: %s [RunID %s]", self.name, run_id)
-
-        except Exception as e:
-            success = False
-            log.error("Job failed: %s %s [RunID %s]", self.name, e, run_id)
-            raise
-        finally:
-            duration = perf_counter() - start
-            metrics = {
-                "job": self,
-                "duration": duration,
-                "name": self.name,
-                "run_id": run_id,
-                "success": success,
-            }
-            log_job_metrics(metrics)
+        df = await self.source.fetch()
+        if not self.source.is_empty(df):
+            self.destination.save(df)
+        else:
+            log.warning("No Query results found! Skipping write")
 
     def __str__(self) -> str:
         """Return a string representation of the job to use in logging."""
