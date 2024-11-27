@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
-from src.interfaces import Destination, Source
+from src.interfaces import Destination, Named, Source
 from src.logger import log
 from src.metrics import collect_metrics
 
@@ -45,7 +45,7 @@ class Database(Enum):
 
 
 @dataclass
-class Job:
+class Job(Named):
     """Base class for all data synchronization jobs.
 
     A job represents a single data transfer operation from a source

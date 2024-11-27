@@ -11,18 +11,10 @@ TypedDataFrame = tuple[DataFrame, dict[str, Any]]
 T = TypeVar("T")
 
 
-class JobProtocol(Protocol):
-    """Represent a Job class from src/job.py."""
+class Named(Protocol):
+    """Represents any class with name field."""
 
     name: str
-    source: Any
-    destination: Any
-
-    async def run(self) -> None:
-        """Represent the run method of the Job class."""
-
-    def __str__(self) -> str:
-        """Represent the __str__ method of the Job class."""
 
 
 class Validate(ABC):

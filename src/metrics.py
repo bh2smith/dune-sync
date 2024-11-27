@@ -9,7 +9,7 @@ from typing import Any
 
 from prometheus_client import CollectorRegistry, Counter, Gauge, push_to_gateway
 
-from src.interfaces import JobProtocol
+from src.interfaces import Named
 from src.logger import log
 
 
@@ -52,7 +52,7 @@ def collect_metrics(
 
     @wraps(func)
     async def wrapper(
-        self: JobProtocol, *args: Iterable[Any], **kwargs: Mapping[Any, Any]
+        self: Named, *args: Iterable[Any], **kwargs: Mapping[Any, Any]
     ) -> Any:
         if not (prometheus_url := env("PROMETHEUS_PUSHGATEWAY_URL")):
             return await func(self, *args, **kwargs)
