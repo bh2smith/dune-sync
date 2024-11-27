@@ -3,7 +3,7 @@
 from os import getenv as env
 from typing import Any
 
-from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
+from prometheus_client import CollectorRegistry, Counter, Gauge, push_to_gateway
 
 
 def log_job_metrics(job_metrics: dict[str, Any]) -> None:
@@ -20,15 +20,12 @@ def log_job_metrics(job_metrics: dict[str, Any]) -> None:
     )
     job_success_timestamp.set_to_current_time()
 
-    # this is intentionally a Gauge rather than a Counter as per the prometheus
-    # documentation: "Do not use a counter to expose a value that can decrease."
-    # https://prometheus.io/docs/concepts/metric_types/
-    job_failure_counter = Gauge(
+    job_failure_counter = Counter(
         name="job_failure_count",
         documentation="Number of failed jobs",
         registry=registry,
     )
-    job_failure_counter.inc(not job_metrics["success"])
+    job_failure_counter.inc(int(not job_metrics["success"]))
 
     job_duration_metric = Gauge(
         name="job_last_success_duration",
