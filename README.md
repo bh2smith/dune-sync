@@ -62,6 +62,7 @@ Copy `.env.sample` to `.env` and fill out the two required variables
 - `DUNE_API_KEY` - Valid API key for [Dune](https://dune.com/)
 - `DB_URL` - Connection string for the source and/or destination PostgreSQL database,
   in the form `postgresql://postgres:postgres@localhost:5432/postgres`
+- (Optional) `PROMETHEUS_PUSHGATEWAY_URL` - URL of a [Prometheus Pushgateway](https://github.com/prometheus/pushgateway) which receives job-related metrics.
 
 ### Mount the config and .env files into the container and run the script
 

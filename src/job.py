@@ -85,7 +85,6 @@ class Job:
         if not self.source.is_empty(df):
             self.destination.save(df)
         else:
-            # TODO should this case still submit metrics?
             log.warning("No Query results found! Skipping write")
 
         duration = perf_counter() - start
