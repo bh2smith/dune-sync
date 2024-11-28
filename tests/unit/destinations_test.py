@@ -217,14 +217,14 @@ class PostgresDestinationTest(unittest.TestCase):
             if_exists="upsert",
             index_columns=["id"],
         )
-        df1 = pd.DataFrame({"id": [1, 2], "value": ["alice", "bob"]})
-        df2 = pd.DataFrame({"id": [3, 4], "value": ["chuck", "dave"]})
+        df1 = pd.DataFrame({"id": [1], "value": ["alice"]})
+        df2 = pd.DataFrame({"id": [2], "value": ["bob"]})
 
         drop_table(pg_dest.engine, table_name)
         # This upsert would create table (since it doesn't exist yet)
-        pg_dest.upsert((df1, {}))
+        pg_dest.insert((df1, {}), on_conflict="update")
         self.assertEqual(
-            [{"id": 1, "value": "alice"}, {"id": 2, "value": "bob"}],
+            [{"id": 1, "value": "alice"}],
             select_star(pg_dest.engine, table_name),
         )
         # Add id constraint:
@@ -237,30 +237,80 @@ class PostgresDestinationTest(unittest.TestCase):
                 """,
         )
         # This would insert with no conflict or update.
-        pg_dest.upsert((df2, {}))
+        pg_dest.insert((df2, {}), on_conflict="update")
+        self.assertEqual(
+            [
+                {"id": 1, "value": "alice"},
+                {"id": 2, "value": "bob"},
+            ],
+            select_star(pg_dest.engine, table_name),
+        )
+        # overwrite some columns with max
+        pg_dest.insert(
+            (
+                pd.DataFrame({"id": [2, 3], "value": ["max", "chuck"]}),
+                {},
+            ),
+            on_conflict="update",
+        )
+        self.assertEqual(
+            [
+                {"id": 1, "value": "alice"},
+                {"id": 2, "value": "max"},
+                {"id": 3, "value": "chuck"},
+            ],
+            select_star(pg_dest.engine, table_name),
+        )
+
+        # Clean up
+        drop_table(pg_dest.engine, table_name)
+
+    def test_insert_ignore(self):
+        table_name = "test_insert_ignore"
+        pg_dest = PostgresDestination(
+            db_url=self.db_url,
+            table_name=table_name,
+            if_exists="insert_ignore",
+            index_columns=["id"],
+        )
+        df1 = pd.DataFrame({"id": [1], "value": ["alice"]})
+        df2 = pd.DataFrame({"id": [2], "value": ["bob"]})
+
+        drop_table(pg_dest.engine, table_name)
+        # This upsert would create table (since it doesn't exist yet)
+        pg_dest.insert((df1, {}), on_conflict="nothing")
+        self.assertEqual(
+            [{"id": 1, "value": "alice"}],
+            select_star(pg_dest.engine, table_name),
+        )
+        # Add id constraint:
+        raw_exec(
+            pg_dest.engine,
+            query_str=f"""
+                ALTER TABLE {table_name}
+                ADD CONSTRAINT {table_name}_id_unique
+                UNIQUE (id);
+                """,
+        )
+        # This would insert with no conflict or update.
+        pg_dest.insert((df2, {}), on_conflict="nothing")
+        self.assertEqual(
+            [{"id": 1, "value": "alice"}, {"id": 2, "value": "bob"}],
+            select_star(pg_dest.engine, table_name),
+        )
+        # overwrite some columns with max
+        pg_dest.insert(
+            (
+                pd.DataFrame({"id": [2, 3], "value": ["max", "chuck"]}),
+                {},
+            ),
+            on_conflict="nothing",
+        )
         self.assertEqual(
             [
                 {"id": 1, "value": "alice"},
                 {"id": 2, "value": "bob"},
                 {"id": 3, "value": "chuck"},
-                {"id": 4, "value": "dave"},
-            ],
-            select_star(pg_dest.engine, table_name),
-        )
-        # overwrite some columns with max
-        pg_dest.upsert(
-            (
-                pd.DataFrame({"id": [3, 4, 5], "value": ["max", "max", "erik"]}),
-                {},
-            )
-        )
-        self.assertEqual(
-            [
-                {"id": 1, "value": "alice"},
-                {"id": 2, "value": "bob"},
-                {"id": 3, "value": "max"},
-                {"id": 4, "value": "max"},
-                {"id": 5, "value": "erik"},
             ],
             select_star(pg_dest.engine, table_name),
         )

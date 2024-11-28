@@ -62,7 +62,8 @@ For Dune destinations (`ref: Dune`):
 
 For Postgres destinations (`ref: Postgres`):
 - `table_name`: String. Name of table to insert/append into
-- `if_exists`: String. One of `fail`, `replace`, `append`
+- `if_exists`: String. One of `upsert`, `insert_ignore`, `replace` or `append`.
+  - `index_columns`: String[]. only relevant for `upsert` or `insert_ignore` a list of columns on which to detect conflict
 
 ### Define environment
 
