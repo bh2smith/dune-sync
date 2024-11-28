@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 from dune_client.query import QueryBase
 
 from src.destinations.dune import DuneDestination
-from src.destinations.postgres import PostgresDestination
+from src.destinations.postgres import PGDestConfig, PostgresDestination
 from src.interfaces import Destination, Source
 from src.job import Database, Job
 from src.sources.dune import DuneSource, parse_query_parameters
@@ -269,7 +269,6 @@ class RuntimeConfig:
                 return PostgresDestination(
                     db_url=dest.key,
                     table_name=dest_config["table_name"],
-                    if_exists=dest_config.get("if_exists", "append"),
-                    index_columns=dest_config.get("index_columns", []),
+                    config=PGDestConfig.from_dict(dest_config),
                 )
         raise ValueError(f"Unsupported destination_db type: {dest}")

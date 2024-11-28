@@ -8,7 +8,7 @@ import sqlalchemy
 from dune_client.models import DuneError
 
 from src.destinations.dune import DuneDestination
-from src.destinations.postgres import PostgresDestination
+from src.destinations.postgres import PGDestConfig, PostgresDestination
 from tests.db_util import create_table, drop_table, raw_exec, select_star
 
 
@@ -125,8 +125,10 @@ class PostgresDestinationTest(unittest.TestCase):
             PostgresDestination(
                 db_url=self.db_url,
                 table_name="foo",
-                if_exists="upsert",
-                index_columns=[],
+                config=PGDestConfig(
+                    if_exists="upsert",
+                    index_columns=[],
+                ),
             )
 
         self.assertIn(
@@ -155,8 +157,10 @@ class PostgresDestinationTest(unittest.TestCase):
         pg_dest = PostgresDestination(
             db_url=self.db_url,
             table_name=table_name,
-            if_exists="upsert",
-            index_columns=["id"],
+            config=PGDestConfig(
+                if_exists="upsert",
+                index_columns=["id"],
+            ),
         )
         drop_table(pg_dest.engine, table_name)
         # No such table.
@@ -214,8 +218,10 @@ class PostgresDestinationTest(unittest.TestCase):
         pg_dest = PostgresDestination(
             db_url=self.db_url,
             table_name=table_name,
-            if_exists="upsert",
-            index_columns=["id"],
+            config=PGDestConfig(
+                if_exists="upsert",
+                index_columns=["id"],
+            ),
         )
         df1 = pd.DataFrame({"id": [1], "value": ["alice"]})
         df2 = pd.DataFrame({"id": [2], "value": ["bob"]})
@@ -270,8 +276,10 @@ class PostgresDestinationTest(unittest.TestCase):
         pg_dest = PostgresDestination(
             db_url=self.db_url,
             table_name=table_name,
-            if_exists="insert_ignore",
-            index_columns=["id"],
+            config=PGDestConfig(
+                if_exists="insert_ignore",
+                index_columns=["id"],
+            ),
         )
         df1 = pd.DataFrame({"id": [1], "value": ["alice"]})
         df2 = pd.DataFrame({"id": [2], "value": ["bob"]})
@@ -323,7 +331,9 @@ class PostgresDestinationTest(unittest.TestCase):
         pg_dest = PostgresDestination(
             db_url=self.db_url,
             table_name=table_name,
-            if_exists="replace",
+            config=PGDestConfig(
+                if_exists="replace",
+            ),
         )
         df1 = pd.DataFrame({"id": [1, 2], "value": ["alice", "bob"]})
 

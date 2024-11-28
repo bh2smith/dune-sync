@@ -14,7 +14,7 @@ from sqlalchemy import BIGINT, BOOLEAN, DATE, TIMESTAMP, VARCHAR
 from sqlalchemy.dialects.postgresql import BYTEA, NUMERIC
 
 from src.config import RuntimeConfig
-from src.destinations.postgres import PostgresDestination
+from src.destinations.postgres import PGDestConfig, PostgresDestination
 from src.sources.dune import dune_result_to_df
 from tests import config_root, fixtures_root
 from tests.db_util import query_pg
@@ -115,7 +115,11 @@ postgres_to_dune_test_df.insert(2, "hash", [memview_content])
 class TestEndToEnd(unittest.IsolatedAsyncioTestCase):
     def test_dune_results_to_db(self):
         pg = PostgresDestination(
-            db_url=DB_URL, table_name="test_table", if_exists="replace"
+            db_url=DB_URL,
+            table_name="test_table",
+            config=PGDestConfig(
+                if_exists="replace",
+            ),
         )
         df, types = dune_result_to_df(SAMPLE_DUNE_RESULTS.result)
 

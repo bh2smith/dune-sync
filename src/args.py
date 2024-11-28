@@ -15,6 +15,7 @@ class Args:
 
     config: Path
     jobs: list[str] | None
+    allow_alteration: bool
 
     @classmethod
     def from_command_line(cls) -> Args:
@@ -35,8 +36,15 @@ class Args:
             default=None,
             help="Names of specific jobs to run (default: run all jobs)",
         )
+        parser.add_argument(
+            "--allow_alteration",
+            type=bool,
+            default=True,
+            help="Allow table alteration based on failed validation (default: True)",
+        )
         args = parser.parse_args()
         return cls(
             config=args.config,
             jobs=args.jobs if args.jobs else None,  # Convert empty list to None
+            allow_alteration=args.allow_alteration,
         )

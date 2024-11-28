@@ -1,15 +1,46 @@
 """Destination logic for PostgreSQL."""
 
-from typing import Literal
+from __future__ import annotations
+
+import dataclasses
+from typing import Any, Literal
 
 import sqlalchemy
-from sqlalchemy import MetaData, Table, create_engine, inspect
+from sqlalchemy import DDL, MetaData, Table, create_engine, inspect
 from sqlalchemy.dialects.postgresql import insert
 
 from src.interfaces import Destination, TypedDataFrame
 from src.logger import log
 
 TableExistsPolicy = Literal["append", "replace", "upsert", "insert_ignore"]
+
+
+@dataclasses.dataclass
+class PGDestConfig:
+    """Configuration Parameters for PostgreSQL as Destination."""
+
+    allow_alter: bool = True
+    # TODO(bh2smith): allow_drop?
+    if_exists: TableExistsPolicy = "append"
+    index_columns: list[str] | None = None
+
+    @classmethod
+    def from_dict(cls, config: dict[str, Any]) -> PGDestConfig:
+        """Construct PGDestConfig from a dictionary."""
+        return cls(
+            allow_alter=config.get("allow_alter", True),
+            if_exists=config.get("if_exists", "append"),
+            index_columns=config.get("index_columns", []),
+        )
+
+    @classmethod
+    def default(cls) -> PGDestConfig:
+        """Construct PGDestConfig from a dictionary."""
+        return cls(
+            allow_alter=True,
+            if_exists="append",
+            index_columns=[],
+        )
 
 
 class PostgresDestination(Destination[TypedDataFrame]):
@@ -42,17 +73,19 @@ class PostgresDestination(Destination[TypedDataFrame]):
         self,
         db_url: str,
         table_name: str,
-        if_exists: TableExistsPolicy = "append",
-        index_columns: list[str] | None = None,
+        config: PGDestConfig | None = None,
     ):
-        if index_columns is None:
-            index_columns = []
+        if config is None:
+            config = PGDestConfig.default()
+        if config.index_columns is None:
+            config.index_columns = []
         self.engine: sqlalchemy.engine.Engine = create_engine(db_url)
+        self.allow_alter: bool = config.allow_alter
         self.table_name: str = table_name
-        self.if_exists: TableExistsPolicy = if_exists
+        self.if_exists: TableExistsPolicy = config.if_exists
         # List of column forming the ON CONFLICT condition.
         # Only relevant for "upsert" TableExistsPolicy
-        self.index_columns: list[str] = index_columns
+        self.index_columns: list[str] = config.index_columns
 
         super().__init__()
 
@@ -80,6 +113,23 @@ class PostgresDestination(Destination[TypedDataFrame]):
             f"ALTER TABLE {table} ADD CONSTRAINT "
             f"{constraint_name} UNIQUE ({index_columns_str});"
         )
+        if self.allow_alter:
+            log.info(
+                "No uniqueness constraint for table %s with column(s) %s. Executing %s",
+                table,
+                self.index_columns,
+                suggestion,
+            )
+            # Define the DDL for the ALTER TABLE suggestion
+            ddl_statement = DDL(suggestion)
+            with self.engine.connect() as conn:
+                # Execute the DDL statement
+                conn.execute(ddl_statement)
+                log.info(
+                    "Successfully executed: %s", ddl_statement.compile(self.engine)
+                )
+            return
+
         message = (
             "The ON CONFLICT clause requires a unique or exclusion constraint "
             f"on the column(s): {index_columns_str}. "
