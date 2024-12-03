@@ -38,13 +38,13 @@ jobs:
       ref: Dune
       table_name: dune_sync_test_table
 
-  - name: p2d-test-2
+  - name: cow-solvers
     source:
       ref: Dune
-      query_id: 4273244
+      query_id: 4345829
       query_engine: medium
-      poll_frequency: 5
+      poll_frequency: 3
     destination:
       ref: PG
-      table_name: app_data
+      table_name: solvers
       if_exists: replace

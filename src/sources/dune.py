@@ -25,6 +25,9 @@ from sqlalchemy.dialects.postgresql import (
 from src.interfaces import Source, TypedDataFrame
 from src.logger import log
 
+DECIMAL_PATTERN = r"decimal\((\d+),\s*(\d+)\)"
+VARCHAR_PATTERN = r"varchar\((\d+)\)"
+
 DUNE_TO_PG: dict[str, type[Any] | NUMERIC] = {
     "bigint": BIGINT,
     "integer": INTEGER,
@@ -37,6 +40,27 @@ DUNE_TO_PG: dict[str, type[Any] | NUMERIC] = {
     "timestamp with time zone": TIMESTAMP,
     "uint256": NUMERIC,
 }
+
+def _parse_varchar(type_str: str) -> int | None:
+    """
+    Extract the length from Dune's varchar type string like varchar(255).
+
+    Parameters
+    ----------
+    type_str : str
+        The Dune type string returned from the API, like `varchar(255)`
+
+    Returns
+    -------
+    int | None
+        Length as an integer, or None if parsing failed.
+    """
+    match = re.match(VARCHAR_PATTERN, type_str)
+    if not match:
+        return None
+
+    length = match.group(1)
+    return int(length)
 
 
 def _parse_decimal_type(type_str: str) -> tuple[int, int] | tuple[None, None]:
@@ -53,7 +77,7 @@ def _parse_decimal_type(type_str: str) -> tuple[int, int] | tuple[None, None]:
         Precision and scale as integers, or two Nones if parsing failed
 
     """
-    match = re.match(r"decimal\((\d+),\s*(\d+)\)", type_str)
+    match = re.match(DECIMAL_PATTERN, type_str)
     if not match:
         return None, None
 
@@ -115,8 +139,17 @@ def _handle_column_types(
     varbinary_cols = []
     unknown_cols = []
 
+    # Handle varchar types
+    if re.match(VARCHAR_PATTERN, d_type):
+        length = _parse_varchar(d_type)
+        if length is not None:
+            # TODO(bh2smith) is it worth specifying the length?
+            DUNE_TO_PG[d_type] = VARCHAR
+        else:
+            log.error("Failed to parse precision and scale from Dune result: %s", name)
+
     # Handle decimal types
-    if re.match(r"decimal\((\d+),\s*(\d+)\)", d_type):
+    if re.match(DECIMAL_PATTERN, d_type):
         precision, scale = _parse_decimal_type(d_type)
         if precision and scale:
             DUNE_TO_PG[d_type] = NUMERIC(precision, scale)
