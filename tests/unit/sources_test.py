@@ -103,7 +103,10 @@ class TestPostgresSource(unittest.TestCase):
                 db_url=os.environ["DB_URL"],
                 query_string="SELECT * FROM does_not_exist",
             )
-        self.assertEqual("Config for PostgresSource is invalid", str(context.exception))
+        self.assertEqual(
+            "Config for PostgresSource is invalid. See ERROR log for details.",
+            str(context.exception),
+        )
 
     def test_invalid_connection_string(self):
         with self.assertRaises(sqlalchemy.exc.ArgumentError) as context:
