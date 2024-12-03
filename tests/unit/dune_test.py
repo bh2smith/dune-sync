@@ -10,8 +10,8 @@ from sqlalchemy.dialects.postgresql import BYTEA, DOUBLE_PRECISION, JSONB
 from src.sources.dune import (
     _handle_column_types,
     _parse_decimal_type,
+    _parse_varchar_type,
     _reformat_unknown_columns,
-    _parse_varchar_type
 )
 
 
@@ -23,7 +23,6 @@ class DuneSourceTest(unittest.TestCase):
 
         self.assertEqual(None, _parse_varchar_type("varchar"))
         self.assertEqual(None, _parse_varchar_type("anything else"))
-
 
     def test_parse_decimal_type(self):
         valid_decimals = [
