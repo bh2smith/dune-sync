@@ -13,6 +13,10 @@ from src.sources.dune import _reformat_varbinary_columns, dune_result_to_df
 from src.sources.postgres import PostgresSource, _convert_bytea_to_hex
 from tests import config_root, fixtures_root
 
+INVALID_CONFIG_MESSAGE = (
+    "Config for PostgresSource is invalid. See ERROR log for details."
+)
+
 
 class TestSourceUtils(unittest.TestCase):
     def test_reformat_varbinary_columns(self):
@@ -104,7 +108,7 @@ class TestPostgresSource(unittest.TestCase):
                 query_string="SELECT * FROM does_not_exist",
             )
         self.assertEqual(
-            "Config for PostgresSource is invalid. See ERROR log for details.",
+            INVALID_CONFIG_MESSAGE,
             str(context.exception),
         )
 
@@ -125,7 +129,7 @@ class TestPostgresSource(unittest.TestCase):
                 db_url="postgresql://postgres:BAD_PASSWORD@localhost:5432/postgres",
                 query_string="SELECT 1",
             )
-        self.assertEqual("Config for PostgresSource is invalid", str(context.exception))
+        self.assertEqual(INVALID_CONFIG_MESSAGE, str(context.exception))
 
     def test_is_empty(self):
         src = PostgresSource(
