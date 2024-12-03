@@ -11,10 +11,20 @@ from src.sources.dune import (
     _handle_column_types,
     _parse_decimal_type,
     _reformat_unknown_columns,
+    _parse_varchar_type
 )
 
 
 class DuneSourceTest(unittest.TestCase):
+
+    def test_parse_varchar_type(self):
+        self.assertEqual(7, _parse_varchar_type("varchar(7)"))
+        self.assertEqual(9, _parse_varchar_type("varchar(9)"))
+
+        self.assertEqual(None, _parse_varchar_type("varchar"))
+        self.assertEqual(None, _parse_varchar_type("anything else"))
+
+
     def test_parse_decimal_type(self):
         valid_decimals = [
             ["decimal(1,0)", (1, 0)],
@@ -38,7 +48,7 @@ class DuneSourceTest(unittest.TestCase):
             with self.subTest(msg=invalid):
                 self.assertEqual((None, None), _parse_decimal_type(invalid))
 
-    def test__handle_column_types(self):
+    def test_handle_column_types(self):
         self.assertEqual(
             (DOUBLE_PRECISION, [], []), _handle_column_types("real_col", "real")
         )

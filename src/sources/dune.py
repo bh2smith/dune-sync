@@ -41,9 +41,9 @@ DUNE_TO_PG: dict[str, type[Any] | NUMERIC] = {
     "uint256": NUMERIC,
 }
 
-def _parse_varchar(type_str: str) -> int | None:
-    """
-    Extract the length from Dune's varchar type string like varchar(255).
+
+def _parse_varchar_type(type_str: str) -> int | None:
+    """Extract the length from Dune's varchar type string like varchar(255).
 
     Parameters
     ----------
@@ -54,6 +54,7 @@ def _parse_varchar(type_str: str) -> int | None:
     -------
     int | None
         Length as an integer, or None if parsing failed.
+
     """
     match = re.match(VARCHAR_PATTERN, type_str)
     if not match:
@@ -141,7 +142,7 @@ def _handle_column_types(
 
     # Handle varchar types
     if re.match(VARCHAR_PATTERN, d_type):
-        length = _parse_varchar(d_type)
+        length = _parse_varchar_type(d_type)
         if length is not None:
             # TODO(bh2smith) is it worth specifying the length?
             DUNE_TO_PG[d_type] = VARCHAR
