@@ -42,7 +42,6 @@ class PostgresDestination(Destination[TypedDataFrame]):
         self,
         db_url: str,
         table_name: str,
-        schema: str = "public",
         if_exists: TableExistsPolicy = "append",
         index_columns: list[str] | None = None,
     ):
@@ -50,14 +49,10 @@ class PostgresDestination(Destination[TypedDataFrame]):
             index_columns = []
         self.engine: sqlalchemy.engine.Engine = create_engine(db_url)
         self.table_name: str = table_name
-        self.schema: str | None = schema
-
+        self.schema = "public"
         # Split table_name if it contains schema
         if "." in table_name:
             self.schema, self.table_name = table_name.split(".", 1)
-        else:
-            self.schema = schema
-            self.table_name = table_name
 
         self.if_exists: TableExistsPolicy = if_exists
         # List of column forming the ON CONFLICT condition.
