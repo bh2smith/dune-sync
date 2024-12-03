@@ -42,6 +42,7 @@ class PostgresDestination(Destination[TypedDataFrame]):
         self,
         db_url: str,
         table_name: str,
+        schema: str = "public",
         if_exists: TableExistsPolicy = "append",
         index_columns: list[str] | None = None,
     ):
@@ -49,6 +50,15 @@ class PostgresDestination(Destination[TypedDataFrame]):
             index_columns = []
         self.engine: sqlalchemy.engine.Engine = create_engine(db_url)
         self.table_name: str = table_name
+        self.schema: str | None = schema
+
+        # Split table_name if it contains schema
+        if "." in table_name:
+            self.schema, self.table_name = table_name.split(".", 1)
+        else:
+            self.schema = schema
+            self.table_name = table_name
+
         self.if_exists: TableExistsPolicy = if_exists
         # List of column forming the ON CONFLICT condition.
         # Only relevant for "upsert" TableExistsPolicy
@@ -58,6 +68,19 @@ class PostgresDestination(Destination[TypedDataFrame]):
 
     def validate(self) -> bool:
         """Validate the destination setup."""
+        # Check if schema exists
+        inspector = inspect(self.engine)
+        available_schemas = inspector.get_schema_names()
+        if self.schema not in available_schemas:
+            log.error(
+                "Schema '%s' does not exist. Available schemas: %s\n"
+                "To create this schema, run the following SQL command:\n"
+                "CREATE SCHEMA %s;",
+                self.schema,
+                ", ".join(available_schemas),
+                self.schema,
+            )
+            return False
         if self.if_exists == "upsert" and len(self.index_columns) == 0:
             log.error("Upsert without index columns.")
             return False
@@ -66,7 +89,9 @@ class PostgresDestination(Destination[TypedDataFrame]):
     def validate_unique_constraints(self) -> None:
         """Validate table has unique or exclusion constraint for index columns."""
         inspector = inspect(self.engine)
-        constraints = inspector.get_unique_constraints(self.table_name)
+        constraints = inspector.get_unique_constraints(
+            self.table_name, schema=self.schema
+        )
         index_columns_set = set(self.index_columns)
 
         for constraint in constraints:
@@ -96,7 +121,7 @@ class PostgresDestination(Destination[TypedDataFrame]):
         :return: True if the table exists, False otherwise.
         """
         inspector = inspect(self.engine)
-        tables = inspector.get_table_names()
+        tables = inspector.get_table_names(schema=self.schema)
         return self.table_name in tables
 
     def save(
@@ -146,6 +171,7 @@ class PostgresDestination(Destination[TypedDataFrame]):
             df.to_sql(
                 self.table_name,
                 connection,
+                schema=self.schema,
                 if_exists="replace",
                 index=False,
                 dtype=dtypes,
@@ -161,6 +187,7 @@ class PostgresDestination(Destination[TypedDataFrame]):
             df.to_sql(
                 self.table_name,
                 connection,
+                schema=self.schema,
                 if_exists="append",
                 index=False,
                 dtype=dtypes,
@@ -185,7 +212,12 @@ class PostgresDestination(Destination[TypedDataFrame]):
         columns = df.columns.tolist()
 
         metadata = MetaData()
-        table = Table(self.table_name, metadata, autoload_with=self.engine)
+        table = Table(
+            self.table_name,
+            metadata,
+            autoload_with=self.engine,
+            schema=self.schema,
+        )
         statement = insert(table).values(**{col: df[col] for col in columns})
 
         if on_conflict == "update":

@@ -22,7 +22,10 @@ class Validate(ABC):
 
     def __init__(self) -> None:
         if not self.validate():
-            raise ValueError(f"Config for {self.__class__.__name__} is invalid")
+            raise ValueError(
+                f"Config for {self.__class__.__name__} is invalid. "
+                "See ERROR log for details."
+            )
 
     @abstractmethod
     def validate(self) -> bool:

@@ -25,23 +25,22 @@ import asyncio
 
 from src.args import Args
 from src.config import RuntimeConfig
+from src.job import Job
 
 
-async def main() -> None:
-    """Load configuration and execute jobs asynchronously.
-
-    The function:
-    1. Parses command line arguments
-    2. Loads the configuration from the specified config file (defaults to config.yaml)
-    3. Executes each configured job
-    4. Logs the completion of each job
+async def main(jobs: list[Job]) -> None:
+    """Asynchronously execute a list of jobs.
 
     Raises:
-        FileNotFoundError: If config file is not found
-        yaml.YAMLError: If config file is invalid
         Various exceptions depending on job configuration and execution
 
     """
+    tasks = [job.run() for job in jobs]
+    for completed_task in asyncio.as_completed(tasks):
+        await completed_task
+
+
+if __name__ == "__main__":
     args = Args.from_command_line()
     config = RuntimeConfig.load(args.config)
 
@@ -51,11 +50,4 @@ async def main() -> None:
         if args.jobs is not None
         else config.jobs
     )
-
-    tasks = [job.run() for job in jobs_to_run]
-    for completed_task in asyncio.as_completed(tasks):
-        await completed_task
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(main(jobs_to_run))

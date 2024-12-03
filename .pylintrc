@@ -1,2 +1,4 @@
 [MASTER]
-disable=fixme,too-few-public-methods
+disable=fixme,too-few-public-methods,too-many-positional-arguments
+# Maximum number of arguments for function / method
+max-args=6
