@@ -1,22 +1,6 @@
 """Handle submitting metrics, logs and other interesting details about jobs."""
 
 import uuid
-
-try:
-    from collections.abc import (
-        Awaitable,
-        Callable,
-        Iterable,
-        Mapping,
-    )  # For Python 3.10+
-except ImportError:
-    from collections.abc import (  # Python > 3.13.1
-        Awaitable,
-        Callable,
-        Iterable,
-        Mapping,
-    )
-
 from functools import wraps
 from os import getenv as env
 from time import perf_counter
@@ -24,6 +8,10 @@ from typing import Any
 
 from prometheus_client import CollectorRegistry, Counter, Gauge, push_to_gateway
 
+# MARKER: pylint-bug
+from src import Awaitable, Callable, Iterable, Mapping
+
+# MARKER: pylint-bug end
 from src.interfaces import Named
 from src.logger import log
 
