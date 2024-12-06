@@ -3,6 +3,9 @@ FROM python:3.13-slim
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
   git \
+  curl \
+  make \
+  docker-compose \
   && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
@@ -14,7 +17,6 @@ RUN groupadd --gid $USER_GID $USERNAME \
   && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
   && apt-get update \
   && apt-get install -y sudo \
-  && sudo apt-get install make \
   && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
   && chmod 0440 /etc/sudoers.d/$USERNAME
 
@@ -30,7 +32,8 @@ RUN pip install --no-cache-dir \
   pylint \
   isort \
   pytest \
-  pytest-cov
+  pytest-cov \
+  ruff
 
 # Switch to non-root user
 USER $USERNAME

@@ -1,6 +1,9 @@
 {
     "name": "Dune Sync Development",
     "dockerFile": "Dockerfile",
+    "features": {
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+    },
     "customizations": {
         "vscode": {
             "extensions": [
@@ -9,7 +12,8 @@
                 "ms-python.pylint",
                 "ms-python.black-formatter",
                 "ms-python.isort",
-                "eamodio.gitlens"
+                "eamodio.gitlens",
+                "ms-azuretools.vscode-docker"
             ],
             "settings": {
                 "python.defaultInterpreterPath": "/usr/local/bin/python",
@@ -25,5 +29,9 @@
         }
     },
     "postCreateCommand": "python -m poetry install",
-    "remoteUser": "vscode"
+    "remoteUser": "vscode",
+    "runArgs": ["--privileged"],
+    "mounts": [
+        "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+    ]
 }
