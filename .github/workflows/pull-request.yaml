@@ -25,7 +25,7 @@ jobs:
       - name: Install poetry
         run: pip install poetry
       - name: Install Requirements
-        run: POETRY_VIRTUALENVS_CREATE=false python -m poetry install
+        run: POETRY_VIRTUALENVS_CREATE=false python -m poetry install --no-root
       - name: Pylint
         run: pylint src/
       - name: Black
