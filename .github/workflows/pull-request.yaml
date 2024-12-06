@@ -22,9 +22,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install poetry
         run: pip install poetry
-      # Install dependencies from lockfile
       - name: Install Requirements
-        run: poetry install --no-root
+        run: POETRY_VIRTUALENVS_CREATE=false python -m poetry install --no-root
       - name: Pylint
         run: pylint src/
       - name: Black
