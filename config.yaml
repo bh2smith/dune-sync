@@ -46,5 +46,5 @@ jobs:
       poll_frequency: 3
     destination:
       ref: PG
-      table_name: solvers
+      table_name: cow.solvers
       if_exists: replace

@@ -1,7 +1,6 @@
 """Handle submitting metrics, logs and other interesting details about jobs."""
 
 import uuid
-from collections.abc import Awaitable, Callable, Iterable, Mapping
 from functools import wraps
 from os import getenv as env
 from time import perf_counter
@@ -9,6 +8,10 @@ from typing import Any
 
 from prometheus_client import CollectorRegistry, Counter, Gauge, push_to_gateway
 
+# MARKER: pylint-bug
+from src import Callable, Iterable, Mapping
+
+# MARKER: pylint-bug end
 from src.interfaces import Named
 from src.logger import log
 
@@ -46,8 +49,8 @@ def log_job_metrics(prometheus_url: str, job_metrics: dict[str, Any]) -> None:
 
 
 def collect_metrics(
-    func: Callable[..., Awaitable[Any]],
-) -> Callable[..., Awaitable[Any]]:
+    func: Callable,
+) -> Callable:
     """Collect and submit metrics about a Job if a pushgateway is configured."""
 
     @wraps(func)
