@@ -3,7 +3,7 @@ services:
     image: postgres:14
     container_name: local_postgres
     networks:
-      - dune-sync-network
+      - monitor-net
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -61,5 +61,3 @@ volumes:
 networks:
   monitor-net:
     driver: bridge
-  dune-sync-network:
-    name: dune-sync-network
