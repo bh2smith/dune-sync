@@ -1,7 +1,9 @@
 services:
-  postgres:
+  local_postgres:
     image: postgres:14
     container_name: local_postgres
+    networks:
+      - dune-sync-network
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -55,7 +57,9 @@ services:
     user: "1000"
 volumes:
   pg_data:
-  prometheus_data: { }
+  prometheus_data: {}
 networks:
   monitor-net:
     driver: bridge
+  dune-sync-network:
+    name: dune-sync-network

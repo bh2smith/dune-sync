@@ -20,6 +20,9 @@ RUN groupadd --gid $USER_GID $USERNAME \
   && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
   && chmod 0440 /etc/sudoers.d/$USERNAME
 
+# Add user to docker group (if it exists)
+RUN usermod -aG docker $USERNAME || true
+
 # Install Poetry and configure it
 RUN python -m pip install poetry
 ENV POETRY_VIRTUALENVS_CREATE=false

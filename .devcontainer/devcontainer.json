@@ -28,10 +28,13 @@
             }
         }
     },
-    "postCreateCommand": "python -m poetry install",
+    "postCreateCommand": "sudo chmod 666 /var/run/docker.sock && python -m poetry install",
     "remoteUser": "vscode",
     "runArgs": ["--privileged"],
     "mounts": [
         "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
-    ]
+    ],
+    "remoteEnv": {
+        "DB_URL": "postgresql://postgres:postgres@local_postgres:5432/postgres"
+    }
 }
