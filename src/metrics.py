@@ -1,7 +1,22 @@
 """Handle submitting metrics, logs and other interesting details about jobs."""
 
 import uuid
-from collections.abc import Awaitable, Callable, Iterable, Mapping
+
+try:
+    from collections.abc import (
+        Awaitable,
+        Callable,
+        Iterable,
+        Mapping,
+    )  # For Python 3.10+
+except ImportError:
+    from collections.abc import (  # Python > 3.13.1
+        Awaitable,
+        Callable,
+        Iterable,
+        Mapping,
+    )
+
 from functools import wraps
 from os import getenv as env
 from time import perf_counter
