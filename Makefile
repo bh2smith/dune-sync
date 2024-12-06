@@ -4,12 +4,6 @@ PIP = $(VENV)/bin/pip
 PROJECT_ROOT = src
 
 
-install:
-	python -m poetry install
-
-update:
-	python -m poetry update
-
 clean:
 	rm -rf __pycache__
 
@@ -41,7 +35,7 @@ test: test-env
 	make test-cleanup
 
 coverage: test-env
-	python -m pytest --cov=src --cov-report=html --cov-fail-under=80 tests/
+	python -m pytest --cov=src --cov-report=html --cov-fail-under=93 tests/
 	make test-cleanup
 
 run:
