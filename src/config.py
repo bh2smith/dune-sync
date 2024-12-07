@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
+import re
 from dataclasses import dataclass
+from io import StringIO
 from pathlib import Path
 from string import Template
 from typing import Any, TextIO
 
 import yaml
+from aiohttp import ClientError, ClientResponseError
+from aiohttp.client import ClientSession
 from dotenv import load_dotenv
 from dune_client.query import QueryBase
 
@@ -16,6 +21,7 @@ from src.destinations.dune import DuneDestination
 from src.destinations.postgres import PostgresDestination
 from src.interfaces import Destination, Source
 from src.job import Database, Job
+from src.logger import log
 from src.sources.dune import DuneSource, parse_query_parameters
 from src.sources.postgres import PostgresSource
 
@@ -140,6 +146,41 @@ class RuntimeConfig:
             )
 
     @classmethod
+    def _load_config_file(cls, file_path: Path | str) -> Any:
+        with open(file_path, encoding="utf-8") as _handle:
+            return cls.read_yaml(_handle)
+
+    @classmethod
+    async def _download_config(cls, url: str) -> str | None:
+        try:
+            async with ClientSession() as session:
+                async with session.get(url) as response:
+                    try:
+                        response.raise_for_status()
+                    except ClientResponseError as e:
+                        log.error(
+                            "Error fetching config from URL: %s",
+                            e,
+                        )
+                        return None
+
+                    return await response.text()
+
+        except ClientError as e:
+            log.error("Request failed: %s", e)
+            return None
+
+    @classmethod
+    def _load_config_url(cls, url: str) -> Any:
+        loop = asyncio.get_event_loop()
+        config_data = loop.run_until_complete(cls._download_config(url))
+        if not config_data:
+            raise SystemExit("Could not download config")
+
+        pseudofile = StringIO(config_data)
+        return cls.read_yaml(pseudofile)
+
+    @classmethod
     def read_yaml(cls, file_handle: TextIO) -> Any:
         """Load YAML from text, substituting any environment variables referenced."""
         Env.load()
@@ -163,8 +204,12 @@ class RuntimeConfig:
             ValueError: If the configuration contains invalid database types
 
         """
-        with open(file_path, encoding="utf-8") as _handle:
-            data = cls.read_yaml(_handle)
+        # TODO maybe support other schemes - what if it lives on an FTP server? :^)
+        #  alternatively, enforce scheme - files would be passed as "file:///path/to/config.yaml"
+        if re.match(r"^https?://.*", str(file_path)):
+            data = cls._load_config_url(url=str(file_path))
+        else:
+            data = cls._load_config_file(file_path)
 
         # Load data sources map
         sources = {}

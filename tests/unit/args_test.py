@@ -1,4 +1,3 @@
-from pathlib import Path
 from unittest.mock import patch
 
 from src import root_path
@@ -16,7 +15,7 @@ def test_args_default_values():
 
 def test_args_custom_config():
     """Test Args parser with custom config path."""
-    test_config = Path("/custom/path/config.yaml")
+    test_config = "/custom/path/config.yaml"
     with patch("sys.argv", ["script.py", "--config", str(test_config)]):
         args = Args.from_command_line()
 
@@ -44,7 +43,7 @@ def test_args_with_empty_jobs():
 
 def test_args_with_all_options():
     """Test Args parser with both config and jobs specified."""
-    test_config = Path("/custom/path/config.yaml")
+    test_config = "/custom/path/config.yaml"
     with patch(
         "sys.argv",
         ["script.py", "--config", str(test_config), "--jobs", "job1", "job2"],
