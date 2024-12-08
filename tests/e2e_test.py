@@ -4,6 +4,7 @@ import os
 import unittest
 from logging import WARNING
 from os import getenv
+from unittest import skipIf
 from unittest.mock import AsyncMock, patch
 
 import pandas.testing
@@ -207,3 +208,17 @@ class TestEndToEnd(unittest.IsolatedAsyncioTestCase):
             await conf.jobs[0].run()
 
         self.assertIn("No Query results found! Skipping write", logs.output[0])
+
+    @patch("src.config.load_dotenv")
+    @patch.dict(os.environ, {"DUNE_API_KEY": "test_key", "DB_URL": DB_URL})
+    @skipIf(not os.getenv("CI"), "this test only runs in CI")
+    def test_dune_to_local_job_run_remote_config(self, *_):
+        cfg_url = "https://raw.githubusercontent.com/bh2smith/dune-sync/refs/heads/main/tests/fixtures/config/basic.yaml"
+
+        conf = RuntimeConfig.load(cfg_url)
+        self.assertIsNotNone(conf)
+        self.assertEqual(2, len(conf.jobs))
+        self.assertEqual(
+            "Download simple test query to local postgres", conf.jobs[0].name
+        )
+        self.assertEqual("Some other job", conf.jobs[1].name)

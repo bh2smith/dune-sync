@@ -128,6 +128,7 @@ class TestRuntimeConfig(unittest.IsolatedAsyncioTestCase):
     async def test_successful_download(self):
         mock_response = AsyncMock(name="Mock GET Response")
         mock_response.text = AsyncMock(return_value="test_config_content")
+        mock_response.raise_for_status.return_value = True
         mock_get = AsyncMock()
         mock_get.__aenter__.return_value = mock_response
 

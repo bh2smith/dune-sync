@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import asyncio
 import os
-import re
 from dataclasses import dataclass
 from io import StringIO
 from pathlib import Path
 from string import Template
 from typing import Any, TextIO
+from urllib.parse import urlsplit, urlunsplit
 
 import yaml
 from aiohttp import ClientError, ClientResponseError
@@ -146,6 +146,25 @@ class RuntimeConfig:
             )
 
     @classmethod
+    def _is_url(cls, path: str) -> bool:
+        """Perform a basic check if given string looks like a URL.
+
+        :param path: arbitrary string
+        """
+        try:
+            result = urlsplit(path)
+            urlunsplit(result)
+            if result.scheme and result.netloc:
+                return True
+        except (
+            ValueError,
+            TypeError,
+        ):  # raised when not enough parts were given to unsplit -> not a URL probably
+            return False
+
+        return False
+
+    @classmethod
     def _load_config_file(cls, file_path: Path | str) -> Any:
         with open(file_path, encoding="utf-8") as _handle:
             return cls.read_yaml(_handle)
@@ -204,9 +223,7 @@ class RuntimeConfig:
             ValueError: If the configuration contains invalid database types
 
         """
-        # TODO maybe support other schemes - what if it lives on an FTP server? :^)
-        #  alternatively, enforce scheme - files would be passed as "file:///path/to/config.yaml"
-        if re.match(r"^https?://.*", str(file_path)):
+        if cls._is_url(str(file_path)):
             data = cls._load_config_url(url=str(file_path))
         else:
             data = cls._load_config_file(file_path)
