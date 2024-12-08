@@ -25,7 +25,14 @@ The config file may contain environment variable placeholders in
 - `$varname`
 
 **Note**: Every variable referenced this way __must__ be defined at runtime,
-otherwise the program will exit with an error.
+otherwise the program exits with an error.
+
+#### Specifying configuration at runtime
+- By default, the program looks for a file called `config.yaml` next to `main.py`
+- You may pass a configuration file by using the `--config` parameter
+  - The argument to `--config` may be a filename, a file path, or a URL starting with `http://` or `https://`
+  - If a URL is passed, it's downloaded and its contents are assumed to be the configuration for the program
+- File or content served at the given URL must be valid YAML and encoded in UTF-8
 
 #### Data Source Definitions
 

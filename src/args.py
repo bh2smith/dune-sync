@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import dataclass
-from pathlib import Path
 
 from src import root_path
 
@@ -13,7 +12,7 @@ from src import root_path
 class Args:
     """Command line argument parser for dune-sync application."""
 
-    config: Path
+    config: str
     jobs: list[str] | None
 
     @classmethod
@@ -24,9 +23,9 @@ class Args:
         )
         parser.add_argument(
             "--config",
-            type=Path,
+            type=str,
             default=root_path.parent / "config.yaml",
-            help="Path to configuration file (default: config.yaml)",
+            help="Path/URL with scheme to configuration file (default: config.yaml)",
         )
         parser.add_argument(
             "--jobs",

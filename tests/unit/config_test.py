@@ -1,8 +1,10 @@
 import os
 import unittest
 from datetime import datetime
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+from aiohttp import ClientError, ClientResponseError
 from dune_client.types import QueryParameter
 
 from src.config import Env, RuntimeConfig
@@ -38,7 +40,7 @@ class TestEnv(unittest.TestCase):
             )
 
 
-class TestRuntimeConfig(unittest.TestCase):
+class TestRuntimeConfig(unittest.IsolatedAsyncioTestCase):
     maxDiff = None
 
     @classmethod
@@ -121,6 +123,59 @@ class TestRuntimeConfig(unittest.TestCase):
 
         with self.assertRaises(SystemExit):
             RuntimeConfig.load(config_root / "no_data_sources.yaml")
+
+    @pytest.mark.asyncio
+    async def test_successful_download(self):
+        mock_response = AsyncMock(name="Mock GET Response")
+        mock_response.text = AsyncMock(return_value="test_config_content")
+        mock_response.raise_for_status.return_value = True
+        mock_get = AsyncMock()
+        mock_get.__aenter__.return_value = mock_response
+
+        with patch("src.config.ClientSession.get", return_value=mock_get):
+            result = await RuntimeConfig._download_config("http://test.xyz")
+
+            self.assertEqual("test_config_content", result)
+            mock_response.raise_for_status.assert_called_once()
+            mock_response.text.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_http_error_response(self):
+        error_response = ClientResponseError(
+            request_info=None, history=None, status=404, message="Not Found"
+        )
+        mock_response = AsyncMock(name="Mock GET Response")
+        mock_response.raise_for_status = MagicMock(
+            side_effect=error_response, name="mock raise for status"
+        )
+        mock_get = AsyncMock()
+        mock_get.__aenter__.return_value = mock_response
+
+        with (
+            patch("src.config.log") as mock_logger,
+            patch("src.config.ClientSession.get", return_value=mock_get),
+        ):
+            result = await RuntimeConfig._download_config(
+                "http://test.thistldbetternotexist"
+            )
+
+            self.assertIsNone(result)
+            mock_logger.error.assert_called_once_with(
+                "Error fetching config from URL: %s", error_response
+            )
+
+    @pytest.mark.asyncio
+    async def test_client_connection_error(self):
+        with (
+            patch("aiohttp.ClientSession", side_effect=ClientError("Connection error")),
+            patch("src.config.log") as mock_logger,
+        ):
+            result = await RuntimeConfig._download_config(
+                "http://test.thistldbetternotexist"
+            )
+
+            assert result is None
+            mock_logger.error.assert_called_once()
 
 
 class TestParseQueryParameters(unittest.TestCase):
