@@ -144,8 +144,7 @@ class PostgresDestination(Destination[TypedDataFrame]):
             If the DataFrame is empty, a warning is logged, and no data is saved.
 
         """
-        df, _ = data
-        if df.empty:
+        if data.is_empty():
             log.warning("DataFrame is empty. Skipping save to PostgreSQL.")
             return 0
         match self.if_exists:
@@ -167,7 +166,7 @@ class PostgresDestination(Destination[TypedDataFrame]):
         data: TypedDataFrame,
     ) -> int:
         """Replace the table with the provided data."""
-        df, dtypes = data
+        df, dtypes = data.dataframe, data.types
         with self.engine.connect() as connection:
             df.to_sql(
                 self.table_name,
@@ -184,7 +183,7 @@ class PostgresDestination(Destination[TypedDataFrame]):
         data: TypedDataFrame,
     ) -> int:
         """Append data to the table. Return affected rows."""
-        df, dtypes = data
+        df, dtypes = data.dataframe, data.types
         with self.engine.connect() as connection:
             df.to_sql(
                 self.table_name,
@@ -211,7 +210,7 @@ class PostgresDestination(Destination[TypedDataFrame]):
             return self.append(data)
 
         self.validate_unique_constraints()
-        df, _ = data
+        df = data.dataframe
         # Get all column names from the DataFrame
         columns = df.columns.tolist()
 

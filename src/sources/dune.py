@@ -206,7 +206,7 @@ def dune_result_to_df(result: ExecutionResult) -> TypedDataFrame:
     df = _reformat_varbinary_columns(df, varbinary_cols)
     df = _reformat_unknown_columns(df, unknown_cols)
 
-    return df, dtypes
+    return TypedDataFrame(df, dtypes)
 
 
 class DuneSource(Source[TypedDataFrame], ABC):
@@ -270,7 +270,7 @@ class DuneSource(Source[TypedDataFrame], ABC):
 
     def is_empty(self, data: TypedDataFrame) -> bool:
         """Check if the provided DataFrame is empty."""
-        return data[0].empty
+        return data.is_empty()
 
 
 def parse_query_parameters(params: list[dict[str, Any]]) -> list[QueryParameter]:

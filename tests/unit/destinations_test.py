@@ -9,6 +9,7 @@ from dune_client.models import DuneError
 
 from src.destinations.dune import DuneDestination
 from src.destinations.postgres import PostgresDestination
+from src.interfaces import TypedDataFrame
 from tests.db_util import create_table, drop_table, raw_exec, select_star
 
 
@@ -110,7 +111,7 @@ class PostgresDestinationTest(unittest.TestCase):
         )
         df = pd.DataFrame([])
         with self.assertLogs(level=WARNING) as logs:
-            pg_dest.save((df, {"numeric": "int?"}))
+            pg_dest.save(TypedDataFrame(df, {"numeric": "int?"}))
 
         self.assertIn(
             "DataFrame is empty. Skipping save to PostgreSQL.", logs.output[0]
@@ -222,7 +223,7 @@ class PostgresDestinationTest(unittest.TestCase):
 
         drop_table(pg_dest.engine, table_name)
         # This upsert would create table (since it doesn't exist yet)
-        pg_dest.insert((df1, {}), on_conflict="update")
+        pg_dest.insert(TypedDataFrame(df1, {}), on_conflict="update")
         self.assertEqual(
             [{"id": 1, "value": "alice"}],
             select_star(pg_dest.engine, table_name),
@@ -237,7 +238,7 @@ class PostgresDestinationTest(unittest.TestCase):
                 """,
         )
         # This would insert with no conflict or update.
-        pg_dest.insert((df2, {}), on_conflict="update")
+        pg_dest.insert(TypedDataFrame(df2, {}), on_conflict="update")
         self.assertEqual(
             [
                 {"id": 1, "value": "alice"},
@@ -247,7 +248,7 @@ class PostgresDestinationTest(unittest.TestCase):
         )
         # overwrite some columns with max
         pg_dest.insert(
-            (
+            TypedDataFrame(
                 pd.DataFrame({"id": [2, 3], "value": ["max", "chuck"]}),
                 {},
             ),
@@ -278,7 +279,7 @@ class PostgresDestinationTest(unittest.TestCase):
 
         drop_table(pg_dest.engine, table_name)
         # This upsert would create table (since it doesn't exist yet)
-        pg_dest.insert((df1, {}), on_conflict="nothing")
+        pg_dest.insert(TypedDataFrame(df1, {}), on_conflict="nothing")
         self.assertEqual(
             [{"id": 1, "value": "alice"}],
             select_star(pg_dest.engine, table_name),
@@ -293,14 +294,14 @@ class PostgresDestinationTest(unittest.TestCase):
                 """,
         )
         # This would insert with no conflict or update.
-        pg_dest.insert((df2, {}), on_conflict="nothing")
+        pg_dest.insert(TypedDataFrame(df2, {}), on_conflict="nothing")
         self.assertEqual(
             [{"id": 1, "value": "alice"}, {"id": 2, "value": "bob"}],
             select_star(pg_dest.engine, table_name),
         )
         # overwrite some columns with max
         pg_dest.insert(
-            (
+            TypedDataFrame(
                 pd.DataFrame({"id": [2, 3], "value": ["max", "chuck"]}),
                 {},
             ),
@@ -329,7 +330,7 @@ class PostgresDestinationTest(unittest.TestCase):
 
         drop_table(pg_dest.engine, table_name)
 
-        pg_dest.replace((df1, {}))
+        pg_dest.replace(TypedDataFrame(df1, {}))
         self.assertEqual(
             [
                 {"id": 1, "value": "alice"},
@@ -339,7 +340,7 @@ class PostgresDestinationTest(unittest.TestCase):
         )
 
         df2 = pd.DataFrame({"id": [3, 4], "value": ["chuck", "dave"]})
-        pg_dest.replace((df2, {}))
+        pg_dest.replace(TypedDataFrame(df2, {}))
         self.assertEqual(
             [
                 {"id": 3, "value": "chuck"},
