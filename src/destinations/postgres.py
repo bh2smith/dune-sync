@@ -3,7 +3,12 @@
 from typing import Literal
 
 import sqlalchemy
-from sqlalchemy import MetaData, Table, create_engine, inspect
+from sqlalchemy import (
+    MetaData,
+    Table,
+    create_engine,
+    inspect,
+)
 from sqlalchemy.dialects.postgresql import insert
 
 from src.interfaces import Destination, TypedDataFrame
@@ -122,7 +127,7 @@ class PostgresDestination(Destination[TypedDataFrame]):
     def save(
         self,
         data: TypedDataFrame,
-    ) -> None:
+    ) -> int:
         """Save the provided DataFrame to the PostgreSQL database table.
 
         Parameters
@@ -142,24 +147,25 @@ class PostgresDestination(Destination[TypedDataFrame]):
         df, _ = data
         if df.empty:
             log.warning("DataFrame is empty. Skipping save to PostgreSQL.")
-            return
+            return 0
         match self.if_exists:
             case "upsert":
-                self.insert(data, on_conflict="update")
+                affected_rows = self.insert(data, on_conflict="update")
             case "insert_ignore":
-                self.insert(data, on_conflict="nothing")
+                affected_rows = self.insert(data, on_conflict="nothing")
             case "append":
-                self.append(data)
+                affected_rows = self.append(data)
             case "replace":
-                self.replace(data)
+                affected_rows = self.replace(data)
             case _:
                 raise ValueError(f"Invalid if_exists policy: {self.if_exists}")
         log.info("Data saved to %s successfully!", self.table_name)
+        return affected_rows
 
     def replace(
         self,
         data: TypedDataFrame,
-    ) -> None:
+    ) -> int:
         """Replace the table with the provided data."""
         df, dtypes = data
         with self.engine.connect() as connection:
@@ -171,12 +177,13 @@ class PostgresDestination(Destination[TypedDataFrame]):
                 index=False,
                 dtype=dtypes,
             )
+        return len(df)
 
     def append(
         self,
         data: TypedDataFrame,
-    ) -> None:
-        """Append data to the table."""
+    ) -> int:
+        """Append data to the table. Return affected rows."""
         df, dtypes = data
         with self.engine.connect() as connection:
             df.to_sql(
@@ -187,19 +194,21 @@ class PostgresDestination(Destination[TypedDataFrame]):
                 index=False,
                 dtype=dtypes,
             )
+        return len(df)
 
     def insert(
         self, data: TypedDataFrame, on_conflict: Literal["update", "nothing"]
-    ) -> None:
+    ) -> int:
         """Insert data from a DataFrame into a SQL table.
+
+        Returns the number of rows inserted.
 
         :param on_conflict: choice for "ON CONFLICT" clause.
         :param data: Typed pandas DataFrame containing the data to upsert.
         """
         if not self.table_exists():
             # Do append.
-            self.append(data)
-            return
+            return self.append(data)
 
         self.validate_unique_constraints()
         df, _ = data
@@ -227,4 +236,5 @@ class PostgresDestination(Destination[TypedDataFrame]):
         records = df.to_dict(orient="records")
         with self.engine.connect() as conn:
             with conn.begin():
-                conn.execute(statement, records)
+                result = conn.execute(statement, records)
+            return int(result.rowcount)

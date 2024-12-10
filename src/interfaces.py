@@ -48,5 +48,5 @@ class Destination(Validate, Generic[T]):
     """Abstract base class for data destinations."""
 
     @abstractmethod
-    def save(self, data: T) -> None:
-        """Save data to the destination."""
+    def save(self, data: T) -> int:
+        """Save data to the destination, returning records processed."""

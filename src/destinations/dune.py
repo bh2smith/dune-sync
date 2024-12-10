@@ -34,8 +34,10 @@ class DuneDestination(Destination[DataFrame]):
         """
         return True
 
-    def save(self, data: DataFrame) -> None:
+    def save(self, data: DataFrame) -> int:
         """Upload a DataFrame to Dune as a CSV.
+
+        Returns size of dataframe (i.e. number of "affected" rows).
 
         Parameters
         ----------
@@ -55,10 +57,10 @@ class DuneDestination(Destination[DataFrame]):
         try:
             log.debug("Uploading DF to Dune...")
             result = self.client.upload_csv(self.table_name, data.to_csv(index=False))
-            log.debug("Uploaded to Dune: %s", result)
             if not result:
                 raise RuntimeError("Dune Upload Failed")
         except DuneError as dune_e:
             log.error("Dune did not accept our upload: %s", dune_e)
         except (ValueError, RuntimeError) as e:
             log.error("Data processing error: %s", e)
+        return len(data)

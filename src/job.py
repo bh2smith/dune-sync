@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
@@ -76,11 +77,25 @@ class Job(Named):
             No exception is raised for empty result sets, only a warning is logged.
 
         """
+        log.info("Fetching data for job: %s", self.name)
+        start_time = time.time()
+
         df = await self.source.fetch()
+        log.info("Saving data for job: %s", self.name)
         if not self.source.is_empty(df):
-            self.destination.save(df)
+            affected_rows = self.destination.save(df)
+            elapsed_time = time.time() - start_time
+            log.info(
+                "Completed job: %s in %.2f seconds "
+                "| affected rows: %d "
+                "| records fetched: %d",
+                self.name,
+                elapsed_time,
+                affected_rows,
+                len(df),
+            )
         else:
-            log.warning("No Query results found! Skipping write")
+            log.warning("No query results found! Skipping write")
 
     def __str__(self) -> str:
         """Return a string representation of the job to use in logging."""
