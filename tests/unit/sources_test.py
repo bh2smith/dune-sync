@@ -51,8 +51,8 @@ class TestSourceUtils(unittest.TestCase):
         rows = [{"id": 1, "bytes_data": "0x1234"}, {"id": 2, "bytes_data": "0xabcd"}]
 
         result = ExecutionResult(rows=rows, metadata=metadata)
-
-        df, dtypes = dune_result_to_df(result)
+        data = dune_result_to_df(result)
+        df, dtypes = data.dataframe, data.types
 
         assert dtypes == {"id": BIGINT, "bytes_data": BYTEA}
 

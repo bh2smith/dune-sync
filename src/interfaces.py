@@ -5,10 +5,32 @@ from typing import Any, Generic, Protocol, TypeVar
 
 from pandas import DataFrame
 
-TypedDataFrame = tuple[DataFrame, dict[str, Any]]
+
+class LenCapable(Protocol):
+    """A protocol that enforces the presence of __len__."""
+
+    def __len__(self) -> int:
+        """Return the number of items present in this interface."""
+
 
 # This will represent your data type (DataFrame, dict, etc.)
-T = TypeVar("T")
+T = TypeVar("T", bound=LenCapable)
+
+
+class TypedDataFrame:
+    """A wrapper around (DataFrame, metadata) with a __len__ method."""
+
+    def __init__(self, dataframe: DataFrame, types: dict[str, Any]):
+        self.dataframe = dataframe
+        self.types = types
+
+    def __len__(self) -> int:
+        """Return the number of rows in the DataFrame."""
+        return len(self.dataframe)
+
+    def is_empty(self) -> bool:
+        """Return True if the DataFrame is empty."""
+        return self.dataframe.empty
 
 
 class Named(Protocol):
@@ -48,5 +70,5 @@ class Destination(Validate, Generic[T]):
     """Abstract base class for data destinations."""
 
     @abstractmethod
-    def save(self, data: T) -> None:
-        """Save data to the destination."""
+    def save(self, data: T) -> int:
+        """Save data to the destination, returning records processed."""

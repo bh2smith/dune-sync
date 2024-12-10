@@ -16,6 +16,7 @@ from sqlalchemy.dialects.postgresql import BYTEA, NUMERIC
 
 from src.config import RuntimeConfig
 from src.destinations.postgres import PostgresDestination
+from src.interfaces import TypedDataFrame
 from src.sources.dune import dune_result_to_df
 from tests import config_root, fixtures_root
 from tests.db_util import query_pg
@@ -118,7 +119,8 @@ class TestEndToEnd(unittest.IsolatedAsyncioTestCase):
         pg = PostgresDestination(
             db_url=DB_URL, table_name="test_table", if_exists="replace"
         )
-        df, types = dune_result_to_df(SAMPLE_DUNE_RESULTS.result)
+        result = dune_result_to_df(SAMPLE_DUNE_RESULTS.result)
+        df, types = result.dataframe, result.types
 
         expected = DataFrame(
             {
@@ -154,7 +156,7 @@ class TestEndToEnd(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(dynamic_type.precision, 12)
         self.assertEqual(dynamic_type.scale, 7)
 
-        pg.save((df, types))
+        pg.save(TypedDataFrame(df, types))
 
         self.assertListEqual(
             [
