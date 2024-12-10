@@ -41,7 +41,6 @@ async def main(jobs: list[Job]) -> None:
         try:
             await completed_task
         except Exception as e:
-            print(e)
             log.error("Error in job execution: %s", str(e))
 
 
