@@ -44,9 +44,9 @@ class DatabaseTests(unittest.IsolatedAsyncioTestCase):
             await test_job.run()
             mock_metrics_push.assert_not_called()
 
-        with patch("src.metrics.env", return_value="http://localhost:9090"):
+        with patch("src.metrics.env", return_value="http://localhost:9091"):
             await test_job.run()
             mock_metrics_push.assert_called_once()
             call_kwargs = mock_metrics_push.mock_calls[0].kwargs
-            self.assertEqual("http://localhost:9090", call_kwargs["gateway"])
+            self.assertEqual("http://localhost:9091", call_kwargs["gateway"])
             self.assertEqual("dune-sync-job name", call_kwargs["job"])

@@ -26,6 +26,7 @@ import asyncio
 from src.args import Args
 from src.config import RuntimeConfig
 from src.job import Job
+from src.logger import log
 
 
 async def main(jobs: list[Job]) -> None:
@@ -37,7 +38,10 @@ async def main(jobs: list[Job]) -> None:
     """
     tasks = [job.run() for job in jobs]
     for completed_task in asyncio.as_completed(tasks):
-        await completed_task
+        try:
+            await completed_task
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            log.error("Error in job execution: %s", str(e))
 
 
 if __name__ == "__main__":
