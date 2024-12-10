@@ -6,6 +6,7 @@ from os import getenv as env
 from time import perf_counter
 from typing import Any
 
+import requests
 from prometheus_client import CollectorRegistry, Counter, Gauge, push_to_gateway
 
 # MARKER: pylint-bug
@@ -14,6 +15,8 @@ from src import Callable, Iterable, Mapping
 # MARKER: pylint-bug end
 from src.interfaces import Named
 from src.logger import log
+
+SUCCESS_STATUS = 200
 
 
 def log_job_metrics(prometheus_url: str, job_metrics: dict[str, Any]) -> None:
@@ -60,6 +63,7 @@ def collect_metrics(
         if not (prometheus_url := env("PROMETHEUS_PUSHGATEWAY_URL")):
             return await func(self, *args, **kwargs)
 
+        validate_prometheus_url(prometheus_url)
         run_id = uuid.uuid4().hex
         start = perf_counter()
         success = False
@@ -82,3 +86,21 @@ def collect_metrics(
             log_job_metrics(prometheus_url, metrics)
 
     return wrapper
+
+
+def validate_prometheus_url(prometheus_url: str) -> None:
+    """Ensure Valid Connection to Prometheus."""
+    try:
+        response = requests.get(prometheus_url, timeout=5)
+        if response.status_code == SUCCESS_STATUS:
+            return
+        log.error(
+            "Failed to connect to Prometheus Pushgateway: %s %s",
+            response.status_code,
+            response.reason,
+        )
+    except requests.exceptions.RequestException as e:
+        log.error("Error connecting to Prometheus Pushgateway: %s", str(e))
+    raise ConnectionError(
+        f"Failed to connect to Prometheus Pushgateway at {prometheus_url}",
+    )
