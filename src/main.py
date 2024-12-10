@@ -40,8 +40,8 @@ async def main(jobs: list[Job]) -> None:
     for completed_task in asyncio.as_completed(tasks):
         try:
             await completed_task
-        except Exception as e:
-            log.error("Error in job execution: %s", str(e))
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            log.critical("Error in job execution: %s", str(e))
 
 
 if __name__ == "__main__":
