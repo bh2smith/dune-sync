@@ -95,7 +95,7 @@ class Job(Named):
                 len(df),
             )
         else:
-            log.warning("No query results found! Skipping write")
+            log.warning("No Query results found! Skipping write")
 
     def __str__(self) -> str:
         """Return a string representation of the job to use in logging."""
