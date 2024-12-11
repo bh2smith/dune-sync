@@ -320,19 +320,18 @@ class RuntimeConfig:
                 f' "{dest_config["ref"]}" defined in config'
             ) from e
 
-        try:
-            request_timeout = dest_config["timeout"]
-            request_timeout = int(request_timeout)
-        except KeyError:
-            log.debug("Dune request timeout not set: defaulting to 10")
-            request_timeout = 10
-        except ValueError as e:
-            log.error(
-                f"request_timeout parameter must be a number, received {request_timeout}"
-            )
-
         match dest.type:
             case Database.DUNE:
+                try:
+                    request_timeout = dest_config["timeout"]
+                    request_timeout = int(request_timeout)
+                except KeyError:
+                    log.debug("Dune request timeout not set: defaulting to 10")
+                    request_timeout = 10
+                except ValueError as e:
+                    log.error(
+                        f"request_timeout parameter must be a number, received type {type(request_timeout)}"
+                    )
                 return DuneDestination(
                     api_key=dest.key,
                     table_name=dest_config["table_name"],
