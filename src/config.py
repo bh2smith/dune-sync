@@ -320,11 +320,22 @@ class RuntimeConfig:
                 f' "{dest_config["ref"]}" defined in config'
             ) from e
 
+        try:
+            request_timeout = dest_config["timeout"]
+            if request_timeout < 1:
+                raise ValueError("Request timeout for DuneClient cannot be < 1")
+            elif type(request_timeout) != int:
+                raise ValueError("Request timeout must be int")
+        except KeyError:
+            log.debug("Request timeout not set: defaulting to 10")
+            request_timeout = 10
+
         match dest.type:
             case Database.DUNE:
                 return DuneDestination(
                     api_key=dest.key,
                     table_name=dest_config["table_name"],
+                    request_timeout=request_timeout,
                 )
 
             case Database.POSTGRES:
