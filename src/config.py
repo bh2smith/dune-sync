@@ -322,13 +322,14 @@ class RuntimeConfig:
 
         try:
             request_timeout = dest_config["timeout"]
-            if request_timeout < 1:
-                raise ValueError("Request timeout for DuneClient cannot be < 1")
-            elif type(request_timeout) != int:
-                raise ValueError("Request timeout must be int")
+            request_timeout = int(request_timeout)
         except KeyError:
             log.debug("Dune request timeout not set: defaulting to 10")
             request_timeout = 10
+        except ValueError as e:
+            log.error(
+                f"request_timeout parameter must be a number, received {request_timeout}"
+            )
 
         match dest.type:
             case Database.DUNE:
