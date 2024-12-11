@@ -2,6 +2,7 @@ FROM python:3.13-alpine
 
 RUN python -m pip install poetry
 RUN mkdir /app
+RUN apk add bash
 COPY src /app/src
 COPY poetry.lock /app/poetry.lock
 COPY pyproject.toml /app/pyproject.toml
