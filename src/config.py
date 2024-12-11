@@ -327,7 +327,7 @@ class RuntimeConfig:
             elif type(request_timeout) != int:
                 raise ValueError("Request timeout must be int")
         except KeyError:
-            log.debug("Request timeout not set: defaulting to 10")
+            log.debug("Dune request timeout not set: defaulting to 10")
             request_timeout = 10
 
         match dest.type:
