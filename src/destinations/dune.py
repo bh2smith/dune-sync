@@ -20,10 +20,15 @@ class DuneDestination(Destination[DataFrame]):
     table_name : str
         The name of the table where the query results will be stored.
 
+    [optional]
+    request_timeout : int
+        Default: 10
+        The request timeout for the dune client.
+
     """
 
-    def __init__(self, api_key: str, table_name: str):
-        self.client = DuneClient(api_key)
+    def __init__(self, api_key: str, table_name: str, request_timeout: int = 10):
+        self.client = DuneClient(api_key, request_timeout=request_timeout)
         self.table_name: str = table_name
         super().__init__()
 
