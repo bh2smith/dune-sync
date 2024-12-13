@@ -330,8 +330,10 @@ class RuntimeConfig:
                     request_timeout = 10
                 except ValueError as e:
                     log.error(
-                        f"request_timeout parameter must be a number, received type {type(request_timeout)}"
+                        "request_timeout parameter must be a number, received type %s",
+                        type(request_timeout)
                     )
+                    raise e
                 return DuneDestination(
                     api_key=dest.key,
                     table_name=dest_config["table_name"],
