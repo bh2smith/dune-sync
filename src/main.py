@@ -42,6 +42,7 @@ async def main(jobs: list[Job]) -> None:
             await completed_task
         except Exception as e:  # pylint: disable=broad-exception-caught
             log.error("Error in job execution: %s", str(e))
+            raise e
 
 
 if __name__ == "__main__":
