@@ -27,7 +27,7 @@ class DuneDestination(Destination[DataFrame]):
 
     """
 
-    def __init__(self, api_key: str, table_name: str, request_timeout: int = 10):
+    def __init__(self, api_key: str, table_name: str, request_timeout: int):
         self.client = DuneClient(api_key, request_timeout=request_timeout)
         self.table_name: str = table_name
         super().__init__()
