@@ -17,3 +17,4 @@ jobs:
     destination:
       ref: dune
       table_name: table_name
+      request_timeout: 600

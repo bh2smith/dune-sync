@@ -66,6 +66,7 @@ For Postgres sources (`ref: Postgres`):
 
 For Dune destinations (`ref: Dune`):
 - `table_name`: String. Name of Dune table to update
+- `request_timeout`: [optional] Request timeout for the dune client
 
 For Postgres destinations (`ref: Postgres`):
 - `table_name`: String. Name of table to insert/append into
