@@ -51,9 +51,9 @@ class DuneDestinationTest(unittest.TestCase):
             destination = DuneDestination(
                 api_key=os.getenv("DUNE_API_KEY"),
                 table_name="foo",
-                request_timeout=timeout
+                request_timeout=timeout,
             )
-            assert destination.client.request_timeout == timeout 
+            assert destination.client.request_timeout == timeout
 
     @patch("dune_client.api.table.TableAPI.upload_csv", name="Fake CSV uploader")
     def test_dune_error_handling(self, mock_dune_upload_csv):

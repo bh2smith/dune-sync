@@ -331,7 +331,7 @@ class RuntimeConfig:
                 except ValueError as e:
                     log.error(
                         "request_timeout parameter must be a number, received type %s",
-                        type(request_timeout)
+                        type(request_timeout),
                     )
                     raise e
                 return DuneDestination(
