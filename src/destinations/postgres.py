@@ -52,7 +52,7 @@ class PostgresDestination(Destination[TypedDataFrame]):
     ):
         if index_columns is None:
             index_columns = []
-        self.engine: sqlalchemy.engine.Engine = create_engine(db_url)
+        self.engine: sqlalchemy.engine.Engine = create_engine(db_url, pool_pre_ping=True)
         self.table_name: str = table_name
         self.schema = "public"
         # Split table_name if it contains schema
