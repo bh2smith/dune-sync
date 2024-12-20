@@ -121,21 +121,21 @@ class PostgresSource(Source[TypedDataFrame]):
         df = await loop.run_in_executor(
             None, lambda: pd.read_sql_query(self.query_string, con=self.engine)
         )
-        # TODO include types.
+        # TODO - extract types and return TypedDataFrame.
         return TypedDataFrame(dataframe=_convert_bytea_to_hex(df), types={})
 
     def is_empty(self, data: TypedDataFrame) -> bool:
-        """Check if the provided DataFrame is empty.
+        """Check if the provided TypedDataFrame is empty.
 
         Parameters
         ----------
-        data : DataFrame
-            The DataFrame to check.
+        data : TypedDataFrame
+            The TypedDataFrame to check.
 
         Returns
         -------
         bool
-            True if the DataFrame is empty, False otherwise.
+            True if the TypedDataFrame is empty, False otherwise.
 
         """
         return data.is_empty()
