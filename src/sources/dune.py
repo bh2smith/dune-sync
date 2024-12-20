@@ -13,35 +13,21 @@ from dune_client.models import ExecutionResult
 from dune_client.query import QueryBase
 from dune_client.types import ParameterType, QueryParameter
 from pandas import DataFrame
-from sqlalchemy import BIGINT, BOOLEAN, DATE, TIMESTAMP, VARCHAR
+from sqlalchemy import VARCHAR
 from sqlalchemy.dialects.postgresql import (
-    BYTEA,
-    DOUBLE_PRECISION,
-    INTEGER,
     JSONB,
     NUMERIC,
 )
 
 from src.interfaces import Source, TypedDataFrame
 from src.logger import log
+from src.sources.type_maps import DUNE_TO_PG
 
 DECIMAL_PATTERN = r"decimal\((\d+),\s*(\d+)\)"
 VARCHAR_PATTERN = r"varchar\((\d+)\)"
 
-DUNE_TO_PG: dict[str, type[Any] | NUMERIC] = {
-    "bigint": BIGINT,
-    "integer": INTEGER,
-    "varbinary": BYTEA,
-    "date": DATE,
-    "boolean": BOOLEAN,
-    "varchar": VARCHAR,
-    "double": DOUBLE_PRECISION,
-    "real": DOUBLE_PRECISION,
-    "timestamp with time zone": TIMESTAMP,
-    "uint256": NUMERIC,
-}
 
-
+# TODO - migrate type utilities to type_maps.
 def _parse_varchar_type(type_str: str) -> int | None:
     """Extract the length from Dune's varchar type string like varchar(255).
 

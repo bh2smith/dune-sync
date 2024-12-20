@@ -2,13 +2,12 @@
 
 from dune_client.client import DuneClient
 from dune_client.models import DuneError
-from pandas import DataFrame
 
-from src.interfaces import Destination
+from src.interfaces import Destination, TypedDataFrame
 from src.logger import log
 
 
-class DuneDestination(Destination[DataFrame]):
+class DuneDestination(Destination[TypedDataFrame]):
     """A class representing as Dune as a destination.
 
     Uses the Dune API to upload CSV data to a table.
@@ -39,14 +38,14 @@ class DuneDestination(Destination[DataFrame]):
         """
         return True
 
-    def save(self, data: DataFrame) -> int:
-        """Upload a DataFrame to Dune as a CSV.
+    def save(self, data: TypedDataFrame) -> int:
+        """Upload a TypedDataFrame to Dune as a CSV.
 
         Returns size of dataframe (i.e. number of "affected" rows).
 
         Parameters
         ----------
-        data : DataFrame
+        data : TypedDataFrame
             The data to be uploaded to Dune, which will be converted to CSV format.
 
         Raises
@@ -60,8 +59,26 @@ class DuneDestination(Destination[DataFrame]):
 
         """
         try:
+            # TODO: Determine user name from DuneAPI key?
+            namespace = "username"
+            table_name = self.table_name
             log.debug("Uploading DF to Dune...")
-            result = self.client.upload_csv(self.table_name, data.to_csv(index=False))
+            # TODO check first if table exists? Or warn if it did...
+            self.client.create_table(
+                namespace,
+                table_name,
+                schema=[
+                    {"name": name, "type": dtype, "nullable": "true"}
+                    for name, dtype in data.types.items()
+                ],
+            )
+            result = self.client.insert_table(
+                namespace,
+                table_name,
+                # TODO - bytes -> IO[bytes]
+                data=data.dataframe.to_csv(index=False),  # type: ignore
+                content_type="text/csv",
+            )
             if not result:
                 raise RuntimeError("Dune Upload Failed")
         except DuneError as dune_e:
