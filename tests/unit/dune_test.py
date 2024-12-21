@@ -16,7 +16,6 @@ from src.sources.dune import (
 
 
 class DuneSourceTest(unittest.TestCase):
-
     def test_parse_varchar_type(self):
         self.assertEqual(7, _parse_varchar_type("varchar(7)"))
         self.assertEqual(9, _parse_varchar_type("varchar(9)"))
