@@ -11,6 +11,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from src.interfaces import Source, TypedDataFrame
 from src.logger import log
+from src.sources.type_maps import PG_TO_DUNE
 
 
 def _convert_bytea_to_hex(df: DataFrame) -> DataFrame:
@@ -118,11 +119,17 @@ class PostgresSource(Source[TypedDataFrame]):
         # of SQLAlchemy's synchronous interface.
         # The current solution using run_in_executor is a workaround
         # that moves the blocking operation to a thread pool.
+        # First get the column types
+        with self.engine.connect() as conn:
+            result = conn.execute(text(self.query_string))
+            types = {
+                col.name: PG_TO_DUNE[col.type_code] for col in result.cursor.description
+            }
         df = await loop.run_in_executor(
             None, lambda: pd.read_sql_query(self.query_string, con=self.engine)
         )
         # TODO - extract types and return TypedDataFrame.
-        return TypedDataFrame(dataframe=_convert_bytea_to_hex(df), types={})
+        return TypedDataFrame(dataframe=_convert_bytea_to_hex(df), types=types)
 
     def is_empty(self, data: TypedDataFrame) -> bool:
         """Check if the provided TypedDataFrame is empty.

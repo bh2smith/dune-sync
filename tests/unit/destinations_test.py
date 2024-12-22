@@ -1,6 +1,6 @@
 import os
 import unittest
-from logging import ERROR, WARNING
+from logging import DEBUG, ERROR, WARNING
 from unittest.mock import patch
 
 import pandas as pd
@@ -26,12 +26,10 @@ class DuneDestinationTest(unittest.TestCase):
         )
         cls.env_patcher.start()
 
-    @patch("pandas.core.generic.NDFrame.to_csv", name="Fake csv writer")
     @patch("dune_client.api.table.TableAPI.create_table", name="Fake Table Creator")
     @patch("dune_client.api.table.TableAPI.insert_table", name="Fake Table Inserter")
-    @patch("requests.sessions.Session.post")
     def test_ensure_index_disabled_when_uploading(
-        self, mock_to_csv, mock_create_table, mock_insert_table, *_
+        self, mock_create_table, mock_insert_table, *_
     ):
         mock_create_table.return_value = {
             "namespace": "my_user",
@@ -41,24 +39,28 @@ class DuneDestinationTest(unittest.TestCase):
             "already_existed": False,
             "message": "Table created successfully",
         }
+
         mock_insert_table.return_value = {"rows_written": 9000, "bytes_written": 90}
 
         dummy_df = TypedDataFrame(
             dataframe=pd.DataFrame(
                 [
-                    {"foo": "bar"},
-                    {"baz": "daz"},
+                    {"foo": "bar", "baz": "one"},
+                    {"foo": "two", "baz": "two"},
                 ]
             ),
             types={"foo": "varchar", "baz": "varchar"},
         )
         destination = DuneDestination(
             api_key=os.getenv("DUNE_API_KEY"),
-            table_name="foo",
+            table_name="foo.bar",
             request_timeout=10,
         )
-        destination.save(dummy_df)
-        mock_to_csv.assert_called_once_with(index=False)
+        with self.assertLogs(level=DEBUG) as logs:
+            destination.save(dummy_df)
+
+        self.assertIn("Uploading DF to Dune", logs.output[0])
+        self.assertIn("Inserted DF to Dune,", logs.output[1])
 
     @patch("pandas.core.generic.NDFrame.to_csv", name="Fake csv writer")
     def test_duneclient_sets_timeout(self, mock_to_csv, *_):
@@ -70,13 +72,12 @@ class DuneDestinationTest(unittest.TestCase):
             )
             assert destination.client.request_timeout == timeout
 
-    @patch("dune_client.api.table.TableAPI.upload_csv", name="Fake CSV uploader")
     @patch("dune_client.api.table.TableAPI.create_table", name="Fake Table Creator")
     @patch("dune_client.api.table.TableAPI.insert_table", name="Fake Table Inserter")
-    def test_dune_error_handling(
-        self, mock_dune_upload_csv, mock_create_table, mock_insert_table
-    ):
-        dest = DuneDestination(api_key="f00b4r", table_name="foo", request_timeout=10)
+    def test_dune_error_handling(self, mock_create_table, mock_insert_table):
+        dest = DuneDestination(
+            api_key="f00b4r", table_name="foo.bar", request_timeout=10
+        )
         df = pd.DataFrame([{"foo": "bar"}])
 
         mock_create_table.return_value = {
@@ -96,13 +97,13 @@ class DuneDestinationTest(unittest.TestCase):
         val_err = ValueError("Oops")
         runtime_err = RuntimeError("Big Oops")
 
-        mock_dune_upload_csv.side_effect = dune_err
+        mock_create_table.side_effect = dune_err
 
         data = TypedDataFrame(df, {})
         with self.assertLogs(level=ERROR) as logs:
             dest.save(data)
 
-        mock_dune_upload_csv.assert_called_once()
+        mock_create_table.assert_called_once()
 
         # does this shit really look better just because it's < 88 characters long?
         exmsg = (
@@ -111,36 +112,36 @@ class DuneDestinationTest(unittest.TestCase):
         )
         self.assertIn(exmsg, logs.output[0])
 
-        mock_dune_upload_csv.reset_mock()
-        mock_dune_upload_csv.side_effect = val_err
+        mock_create_table.reset_mock()
+        mock_create_table.side_effect = val_err
 
         with self.assertLogs(level=ERROR) as logs:
             dest.save(data)
 
-        mock_dune_upload_csv.assert_called_once()
+        mock_create_table.assert_called_once()
         expected_message = "Data processing error: Oops"
         self.assertIn(expected_message, logs.output[0])
 
-        mock_dune_upload_csv.reset_mock()
-        mock_dune_upload_csv.side_effect = runtime_err
+        mock_create_table.reset_mock()
+        mock_create_table.side_effect = runtime_err
         with self.assertLogs(level=ERROR) as logs:
             dest.save(data)
 
-        mock_dune_upload_csv.assert_called_once()
+        mock_create_table.assert_called_once()
         expected_message = "Data processing error: Big Oops"
         self.assertIn(expected_message, logs.output[0])
 
-        mock_dune_upload_csv.reset_mock()
+        mock_create_table.reset_mock()
 
         # TIL: reset_mock() doesn't clear side effects....
-        mock_dune_upload_csv.side_effect = None
+        mock_create_table.side_effect = None
 
-        mock_dune_upload_csv.return_value = None
+        mock_create_table.return_value = None
 
         with self.assertLogs(level=ERROR) as logs:
             dest.save(data)
 
-        mock_dune_upload_csv.assert_called_once()
+        mock_create_table.assert_called_once()
         self.assertIn("Dune Upload Failed", logs.output[0])
 
 

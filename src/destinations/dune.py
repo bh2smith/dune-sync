@@ -1,5 +1,7 @@
 """Destination logic for Dune Analytics."""
 
+import io
+
 from dune_client.client import DuneClient
 from dune_client.models import DuneError
 
@@ -59,30 +61,34 @@ class DuneDestination(Destination[TypedDataFrame]):
 
         """
         try:
-            # TODO: Determine user name from DuneAPI key?
-            namespace = "username"
-            table_name = self.table_name
             log.debug("Uploading DF to Dune...")
+            namespace, table_name = self._get_namespace_and_table_name()
             # TODO check first if table exists? Or warn if it did...
             self.client.create_table(
                 namespace,
                 table_name,
                 schema=[
-                    {"name": name, "type": dtype, "nullable": "true"}
-                    for name, dtype in data.types.items()
+                    {"name": name, "type": dtype} for name, dtype in data.types.items()
                 ],
             )
             result = self.client.insert_table(
                 namespace,
                 table_name,
-                # TODO - bytes -> IO[bytes]
-                data=data.dataframe.to_csv(index=False),  # type: ignore
+                data=io.BytesIO(data.dataframe.to_csv(index=False).encode()),
                 content_type="text/csv",
             )
             if not result:
                 raise RuntimeError("Dune Upload Failed")
+            log.debug("Inserted DF to Dune, %s", result)
         except DuneError as dune_e:
             log.error("Dune did not accept our upload: %s", dune_e)
         except (ValueError, RuntimeError) as e:
             log.error("Data processing error: %s", e)
         return len(data)
+
+    def _get_namespace_and_table_name(self) -> tuple[str, str]:
+        """Split the namespace, table name from the provided table name."""
+        if "." not in self.table_name:
+            raise ValueError("Table name must be in the format namespace.table_name")
+        namespace, table_name = self.table_name.split(".")
+        return namespace, table_name
