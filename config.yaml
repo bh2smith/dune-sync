@@ -36,7 +36,7 @@ jobs:
       query_string: "SELECT 1 as number, '\\x1234'::bytea as my_bytes;"
     destination:
       ref: Dune
-      table_name: dune_sync_test_table
+      table_name: bh2smith.dune_sync_test
 
   - name: cow-solvers
     source:

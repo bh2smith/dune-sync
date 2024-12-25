@@ -33,6 +33,9 @@ class TypedDataFrame:
         return self.dataframe.empty
 
 
+# TODO: maybe a good place to define schema transformations and other data manipulation?
+
+
 class Named(Protocol):
     """Represents any class with name field."""
 
