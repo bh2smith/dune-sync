@@ -55,4 +55,4 @@ jobs:
       query_string: "SELECT 1 as number, '\\x1234'::bytea as my_bytes;"
     destination:
       ref: PG
-      table_name: aurelie.p2p-test
+      table_name: moo.p2p-test
