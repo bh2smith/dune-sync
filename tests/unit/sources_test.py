@@ -9,6 +9,7 @@ from sqlalchemy import BIGINT
 from sqlalchemy.dialects.postgresql import BYTEA
 
 from src.config import RuntimeConfig
+from src.interfaces import TypedDataFrame
 from src.sources.dune import _reformat_varbinary_columns, dune_result_to_df
 from src.sources.postgres import PostgresSource, _convert_bytea_to_hex
 from tests import config_root, fixtures_root
@@ -136,5 +137,4 @@ class TestPostgresSource(unittest.TestCase):
             db_url="postgresql://postgres:postgres@localhost:5432/postgres",
             query_string="SELECT 1",
         )
-        df = pd.DataFrame([])
-        self.assertTrue(src.is_empty(df))
+        self.assertTrue(src.is_empty(TypedDataFrame(pd.DataFrame([]), {})))

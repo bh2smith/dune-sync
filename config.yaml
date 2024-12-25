@@ -48,3 +48,11 @@ jobs:
       ref: PG
       table_name: cow.solvers
       if_exists: replace
+
+  - name: p2p-test
+    source:
+      ref: PG
+      query_string: "SELECT 1 as number, '\\x1234'::bytea as my_bytes;"
+    destination:
+      ref: PG
+      table_name: aurelie.p2p-test

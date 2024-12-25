@@ -9,7 +9,7 @@ from pandas import DataFrame
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 
-from src.interfaces import Source
+from src.interfaces import Source, TypedDataFrame
 from src.logger import log
 
 
@@ -41,7 +41,7 @@ def _convert_bytea_to_hex(df: DataFrame) -> DataFrame:
     return df
 
 
-class PostgresSource(Source[DataFrame]):
+class PostgresSource(Source[TypedDataFrame]):
     """Represent PostgreSQL as a data source for retrieving data via SQL queries.
 
     This class connects to a PostgreSQL database using SQLAlchemy and executes a query
@@ -100,7 +100,7 @@ class PostgresSource(Source[DataFrame]):
             log.error("Invalid SQL query: %s", str(e))
             return False
 
-    async def fetch(self) -> DataFrame:
+    async def fetch(self) -> TypedDataFrame:
         """Execute the SQL query and retrieves the result as a DataFrame.
 
         Returns
@@ -121,9 +121,10 @@ class PostgresSource(Source[DataFrame]):
         df = await loop.run_in_executor(
             None, lambda: pd.read_sql_query(self.query_string, con=self.engine)
         )
-        return _convert_bytea_to_hex(df)
+        # TODO include types.
+        return TypedDataFrame(dataframe=_convert_bytea_to_hex(df), types={})
 
-    def is_empty(self, data: DataFrame) -> bool:
+    def is_empty(self, data: TypedDataFrame) -> bool:
         """Check if the provided DataFrame is empty.
 
         Parameters
@@ -137,7 +138,7 @@ class PostgresSource(Source[DataFrame]):
             True if the DataFrame is empty, False otherwise.
 
         """
-        return data.empty
+        return data.is_empty()
 
     def _set_query_string(self, query_string: str) -> None:
         """Set the SQL query string directly or from a file if it ends with '.sql'.
