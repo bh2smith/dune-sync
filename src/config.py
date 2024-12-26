@@ -2,18 +2,16 @@
 
 from __future__ import annotations
 
-import asyncio
 import os
 from dataclasses import dataclass
 from io import StringIO
 from pathlib import Path
 from string import Template
 from typing import Any, TextIO
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urlsplit
 
+import requests
 import yaml
-from aiohttp import ClientError, ClientResponseError
-from aiohttp.client import ClientSession
 from dotenv import load_dotenv
 from dune_client.query import QueryBase
 
@@ -153,16 +151,9 @@ class RuntimeConfig:
         """
         try:
             result = urlsplit(path)
-            urlunsplit(result)
-            if result.scheme and result.netloc:
-                return True
-        except (
-            ValueError,
-            TypeError,
-        ):  # raised when not enough parts were given to unsplit -> not a URL probably
+            return bool(result.scheme and result.netloc)
+        except (TypeError, AttributeError):  # raised when path isn't str-like
             return False
-
-        return False
 
     @classmethod
     def _load_config_file(cls, file_path: Path | str) -> Any:
@@ -170,34 +161,28 @@ class RuntimeConfig:
             return cls.read_yaml(_handle)
 
     @classmethod
-    async def _download_config(cls, url: str) -> str | None:
-        try:
-            async with ClientSession() as session:
-                async with session.get(url) as response:
-                    try:
-                        response.raise_for_status()
-                    except ClientResponseError as e:
-                        log.error(
-                            "Error fetching config from URL: %s",
-                            e,
-                        )
-                        return None
-
-                    return await response.text()
-
-        except ClientError as e:
-            log.error("Request failed: %s", e)
-            return None
-
-    @classmethod
     def _load_config_url(cls, url: str) -> Any:
-        loop = asyncio.get_event_loop()
-        config_data = loop.run_until_complete(cls._download_config(url))
-        if not config_data:
-            raise SystemExit("Could not download config")
+        """Load configuration from a URL.
 
-        pseudofile = StringIO(config_data)
-        return cls.read_yaml(pseudofile)
+        Args:
+            url: The URL to fetch the configuration from
+
+        Returns:
+            The parsed YAML configuration
+
+        Raises:
+            SystemExit: If the configuration cannot be downloaded
+
+        """
+        try:
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+            config_data = response.text
+        except requests.RequestException as e:
+            log.error("Error fetching config from URL: %s", e)
+            raise SystemExit("Could not download config") from e
+
+        return cls.read_yaml(StringIO(config_data))
 
     @classmethod
     def read_yaml(cls, file_handle: TextIO) -> Any:
@@ -323,7 +308,7 @@ class RuntimeConfig:
         match dest.type:
             case Database.DUNE:
                 try:
-                    request_timeout = dest_config["timeout"]
+                    request_timeout = dest_config["request_timeout"]
                     request_timeout = int(request_timeout)
                 except KeyError:
                     log.debug("Dune request timeout not set: defaulting to 10")
