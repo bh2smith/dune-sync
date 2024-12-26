@@ -39,7 +39,7 @@ class DuneDestinationTest(unittest.TestCase):
             table_name="foo",
             request_timeout=10,
         )
-        destination.save(dummy_df)
+        destination.save(TypedDataFrame(dummy_df, {}))
         mock_to_csv.assert_called_once_with(index=False)
 
     @patch("pandas.core.generic.NDFrame.to_csv", name="Fake csv writer")
@@ -55,7 +55,7 @@ class DuneDestinationTest(unittest.TestCase):
     @patch("dune_client.api.table.TableAPI.upload_csv", name="Fake CSV uploader")
     def test_dune_error_handling(self, mock_dune_upload_csv):
         dest = DuneDestination(api_key="f00b4r", table_name="foo", request_timeout=10)
-        df = pd.DataFrame([{"foo": "bar"}])
+        df = TypedDataFrame(pd.DataFrame([{"foo": "bar"}]), {})
 
         dune_err = DuneError(
             data={"error": "bad stuff"},

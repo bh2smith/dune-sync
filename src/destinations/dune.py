@@ -2,13 +2,12 @@
 
 from dune_client.client import DuneClient
 from dune_client.models import DuneError
-from pandas import DataFrame
 
-from src.interfaces import Destination
+from src.interfaces import Destination, TypedDataFrame
 from src.logger import log
 
 
-class DuneDestination(Destination[DataFrame]):
+class DuneDestination(Destination[TypedDataFrame]):
     """A class representing as Dune as a destination.
 
     Uses the Dune API to upload CSV data to a table.
@@ -39,7 +38,7 @@ class DuneDestination(Destination[DataFrame]):
         """
         return True
 
-    def save(self, data: DataFrame) -> int:
+    def save(self, data: TypedDataFrame) -> int:
         """Upload a DataFrame to Dune as a CSV.
 
         Returns size of dataframe (i.e. number of "affected" rows).
@@ -61,7 +60,9 @@ class DuneDestination(Destination[DataFrame]):
         """
         try:
             log.debug("Uploading DF to Dune...")
-            result = self.client.upload_csv(self.table_name, data.to_csv(index=False))
+            result = self.client.upload_csv(
+                self.table_name, data.dataframe.to_csv(index=False)
+            )
             if not result:
                 raise RuntimeError("Dune Upload Failed")
         except DuneError as dune_e:

@@ -1,10 +1,11 @@
 import os
 import unittest
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from io import StringIO
+from unittest.mock import MagicMock, patch
 
 import pytest
-from aiohttp import ClientError, ClientResponseError
+import requests
 from dune_client.types import QueryParameter
 
 from src.config import Env, RuntimeConfig
@@ -63,6 +64,32 @@ class TestRuntimeConfig(unittest.IsolatedAsyncioTestCase):
     @classmethod
     def tearDownClass(cls):
         cls.env_patcher.stop()
+
+    def test_is_url(self):
+        # Valid URLs
+        assert RuntimeConfig._is_url("https://example.com") is True
+        assert RuntimeConfig._is_url("http://localhost:8080") is True
+        assert RuntimeConfig._is_url("ftp://files.example.com") is True
+        assert RuntimeConfig._is_url("https://api.github.com/path?query=123") is True
+        assert RuntimeConfig._is_url("sftp://user:pass@server.com:22") is True
+
+        # Invalid URLs
+        assert RuntimeConfig._is_url("not-a-url") is False
+        assert RuntimeConfig._is_url("") is False
+        assert RuntimeConfig._is_url("file.txt") is False
+        assert RuntimeConfig._is_url("/path/to/file") is False
+        assert RuntimeConfig._is_url("C:\\Windows\\Path") is False
+        assert RuntimeConfig._is_url("://missing-scheme.com") is False
+        assert RuntimeConfig._is_url("http://") is False  # Missing netloc
+
+        # Edge cases
+        assert RuntimeConfig._is_url(None) is False  # type: ignore
+        assert RuntimeConfig._is_url("http:/example.com") is False  # Missing slash
+        assert RuntimeConfig._is_url("https:example.com") is False  # Missing slashes
+
+        # Cases that actually trigger exceptions
+        assert RuntimeConfig._is_url([1, 2, 3]) is False  # TypeError: list is not str
+        assert RuntimeConfig._is_url(123) is False  # TypeError: int is not str
 
     def test_load_basic_conf(self):
         config_file = config_root / "basic.yaml"
@@ -124,58 +151,63 @@ class TestRuntimeConfig(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(SystemExit):
             RuntimeConfig.load(config_root / "no_data_sources.yaml")
 
-    @pytest.mark.asyncio
-    async def test_successful_download(self):
-        mock_response = AsyncMock(name="Mock GET Response")
-        mock_response.text = AsyncMock(return_value="test_config_content")
-        mock_response.raise_for_status.return_value = True
-        mock_get = AsyncMock()
-        mock_get.__aenter__.return_value = mock_response
+        with self.assertRaises(ValueError):
+            RuntimeConfig.load(config_root / "invalid_request_timeout.yaml")
 
-        with patch("src.config.ClientSession.get", return_value=mock_get):
-            result = await RuntimeConfig._download_config("http://test.xyz")
+    def test_load_config_url(self):
+        # Mock response for successful case
+        mock_yaml_content = """
+        data_sources:
+        - name: test
+            type: dune
+            key: test_key
+        jobs:
+        - name: job1
+            source:
+            ref: test
+        """
 
-            self.assertEqual("test_config_content", result)
-            mock_response.raise_for_status.assert_called_once()
-            mock_response.text.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_http_error_response(self):
-        error_response = ClientResponseError(
-            request_info=None, history=None, status=404, message="Not Found"
-        )
-        mock_response = AsyncMock(name="Mock GET Response")
-        mock_response.raise_for_status = MagicMock(
-            side_effect=error_response, name="mock raise for status"
-        )
-        mock_get = AsyncMock()
-        mock_get.__aenter__.return_value = mock_response
-
+        # Test successful download
         with (
-            patch("src.config.log") as mock_logger,
-            patch("src.config.ClientSession.get", return_value=mock_get),
+            patch("requests.get") as mock_get,
+            patch("src.config.RuntimeConfig.read_yaml") as mock_read_yaml,
         ):
-            result = await RuntimeConfig._download_config(
-                "http://test.thistldbetternotexist"
-            )
+            # Setup mock response
+            mock_response = MagicMock()
+            mock_response.text = mock_yaml_content
+            mock_response.raise_for_status.return_value = None
+            mock_get.return_value = mock_response
 
-            self.assertIsNone(result)
-            mock_logger.error.assert_called_once_with(
-                "Error fetching config from URL: %s", error_response
-            )
+            mock_read_yaml.return_value = {"test": "data"}
 
-    @pytest.mark.asyncio
-    async def test_client_connection_error(self):
-        with (
-            patch("aiohttp.ClientSession", side_effect=ClientError("Connection error")),
-            patch("src.config.log") as mock_logger,
-        ):
-            result = await RuntimeConfig._download_config(
-                "http://test.thistldbetternotexist"
-            )
+            result = RuntimeConfig._load_config_url("https://example.com/config.yaml")
 
-            assert result is None
-            mock_logger.error.assert_called_once()
+            # Verify the URL was called with timeout
+            mock_get.assert_called_once_with(
+                "https://example.com/config.yaml", timeout=10
+            )
+            # Verify read_yaml was called with StringIO containing our mock content
+            mock_read_yaml.assert_called_once()
+            assert isinstance(mock_read_yaml.call_args[0][0], StringIO)
+            assert result == {"test": "data"}
+
+        # Test HTTP error
+        with patch("requests.get") as mock_get:
+            mock_response = MagicMock()
+            mock_response.raise_for_status.side_effect = requests.HTTPError(
+                "404 Not Found"
+            )
+            mock_get.return_value = mock_response
+
+            with pytest.raises(SystemExit, match="Could not download config"):
+                RuntimeConfig._load_config_url("https://example.com/config.yaml")
+
+        # Test network error
+        with patch("requests.get") as mock_get:
+            mock_get.side_effect = requests.RequestException("Network error")
+
+            with pytest.raises(SystemExit, match="Could not download config"):
+                RuntimeConfig._load_config_url("https://example.com/config.yaml")
 
 
 class TestParseQueryParameters(unittest.TestCase):
