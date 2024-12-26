@@ -1,6 +1,7 @@
 """Source logic for PostgreSQL."""
 
 import asyncio
+import json
 from pathlib import Path
 
 import pandas as pd
@@ -11,6 +12,15 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from src.interfaces import Source, TypedDataFrame
 from src.logger import log
+
+
+def _convert_dict_to_json(df: DataFrame) -> DataFrame:
+    """Convert dictionary columns to JSON strings."""
+    df = df.copy()
+    for column in df.columns:
+        if isinstance(df[column].iloc[0], dict):
+            df[column] = df[column].apply(json.dumps)
+    return df
 
 
 def _convert_bytea_to_hex(df: DataFrame) -> DataFrame:
@@ -121,8 +131,11 @@ class PostgresSource(Source[TypedDataFrame]):
         df = await loop.run_in_executor(
             None, lambda: pd.read_sql_query(self.query_string, con=self.engine)
         )
+
+        df = _convert_dict_to_json(df)
+        df = _convert_bytea_to_hex(df)
         # TODO include types.
-        return TypedDataFrame(dataframe=_convert_bytea_to_hex(df), types={})
+        return TypedDataFrame(dataframe=df, types={})
 
     def is_empty(self, data: TypedDataFrame) -> bool:
         """Check if the provided DataFrame is empty.
