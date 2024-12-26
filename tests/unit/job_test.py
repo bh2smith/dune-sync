@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from dune_client.query import QueryBase
@@ -36,8 +36,9 @@ class DatabaseTests(unittest.IsolatedAsyncioTestCase):
             db_url="postgresql://postgres:postgres@localhost:5432/postgres",
             table_name="some_table",
         )
+
         src.fetch = AsyncMock()
-        dest.save = AsyncMock()
+        dest.save = Mock()
         test_job = Job(name="job name", source=src, destination=dest)
 
         with patch("src.metrics.env", return_value=None):
