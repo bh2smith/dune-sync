@@ -15,11 +15,20 @@ from src.logger import log
 
 
 def _convert_dict_to_json(df: DataFrame) -> DataFrame:
-    """Convert dictionary columns to JSON strings."""
+    if df.empty:
+        return df
+
     df = df.copy()
     for column in df.columns:
-        if isinstance(df[column].iloc[0], dict):
-            df[column] = df[column].apply(json.dumps)
+        # Get first non-null value to check type
+        non_null_values = df[column][df[column].notna()]
+        if len(non_null_values) > 0:
+            first_value = non_null_values.iloc[0]
+            if isinstance(first_value, dict | list):
+                df[column] = df[column].apply(
+                    lambda x: json.dumps(x) if x is not None else None
+                )
+
     return df
 
 
