@@ -76,7 +76,9 @@ class DuneDestinationTest(unittest.TestCase):
     @patch("dune_client.api.table.TableAPI.create_table", name="Fake Table Creator")
     @patch("dune_client.api.table.TableAPI.insert_table", name="Fake Table Inserter")
     def test_dune_error_handling(self, mock_create_table, mock_insert_table):
-        dest = DuneDestination(api_key="f00b4r", table_name="foo", request_timeout=10)
+        dest = DuneDestination(
+            api_key="f00b4r", table_name="foo.bar", request_timeout=10
+        )
         df = TypedDataFrame(pd.DataFrame([{"foo": "bar"}]), {})
 
         mock_create_table.return_value = {
@@ -98,9 +100,8 @@ class DuneDestinationTest(unittest.TestCase):
 
         mock_create_table.side_effect = dune_err
 
-        data = TypedDataFrame(df, {})
         with self.assertLogs(level=ERROR) as logs:
-            dest.save(data)
+            dest.save(df)
 
         mock_create_table.assert_called_once()
 
@@ -115,7 +116,7 @@ class DuneDestinationTest(unittest.TestCase):
         mock_create_table.side_effect = val_err
 
         with self.assertLogs(level=ERROR) as logs:
-            dest.save(data)
+            dest.save(df)
 
         mock_create_table.assert_called_once()
         expected_message = "Data processing error: Oops"
@@ -124,7 +125,7 @@ class DuneDestinationTest(unittest.TestCase):
         mock_create_table.reset_mock()
         mock_create_table.side_effect = runtime_err
         with self.assertLogs(level=ERROR) as logs:
-            dest.save(data)
+            dest.save(df)
 
         mock_create_table.assert_called_once()
         expected_message = "Data processing error: Big Oops"
@@ -138,7 +139,7 @@ class DuneDestinationTest(unittest.TestCase):
         mock_create_table.return_value = None
 
         with self.assertLogs(level=ERROR) as logs:
-            dest.save(data)
+            dest.save(df)
 
         mock_create_table.assert_called_once()
         self.assertIn("Dune Upload Failed", logs.output[0])
