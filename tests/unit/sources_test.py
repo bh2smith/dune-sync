@@ -11,7 +11,11 @@ from sqlalchemy.dialects.postgresql import BYTEA
 from src.config import RuntimeConfig
 from src.interfaces import TypedDataFrame
 from src.sources.dune import _reformat_varbinary_columns, dune_result_to_df
-from src.sources.postgres import PostgresSource, _convert_bytea_to_hex
+from src.sources.postgres import (
+    PostgresSource,
+    _convert_bytea_to_hex,
+    _convert_dict_to_json,
+)
 from tests import config_root, fixtures_root
 
 INVALID_CONFIG_MESSAGE = (
@@ -76,6 +80,39 @@ class TestSourceUtils(unittest.TestCase):
         df = pd.DataFrame([])
         result = _convert_bytea_to_hex(df)
         pd.testing.assert_frame_equal(pd.DataFrame([]), result)
+
+    def test_convert_dict_to_json(self):
+        # Test data with dictionary and normal columns
+        data = {
+            "dict_col": [{"key": "value"}, {"nested": {"a": 1}}, None],
+            "normal_col": [1, 2, 3],
+            "list_dict": [[{"x": 1}, {"y": 2}], None, [{"z": 3}]],
+        }
+        df = pd.DataFrame(data)
+
+        result = _convert_dict_to_json(df)
+
+        # Assert dictionary column was converted to JSON strings
+        assert result["dict_col"].tolist() == [
+            '{"key": "value"}',
+            '{"nested": {"a": 1}}',
+            None,
+        ]
+
+        # Assert list of dictionaries was converted
+        assert result["list_dict"].tolist() == [
+            '[{"x": 1}, {"y": 2}]',
+            None,
+            '[{"z": 3}]',
+        ]
+
+        # Assert normal column remains unchanged
+        assert result["normal_col"].tolist() == [1, 2, 3]
+
+        # Test empty DataFrame
+        df_empty = pd.DataFrame([])
+        result_empty = _convert_dict_to_json(df_empty)
+        pd.testing.assert_frame_equal(pd.DataFrame([]), result_empty)
 
 
 class TestPostgresSource(unittest.TestCase):

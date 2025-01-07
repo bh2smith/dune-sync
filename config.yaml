@@ -52,7 +52,13 @@ jobs:
   - name: p2p-test
     source:
       ref: PG
-      query_string: "SELECT 1 as number, '\\x1234'::bytea as my_bytes;"
+      query_string: |
+        SELECT 
+          1 AS number, 
+          '\\x1234'::bytea AS my_bytes,
+          '{"key": "value", "array": [1, 2, 3], "dict": {}}'::json AS my_json,
+          '[ [{"x": 1}, {"y": 2}], null, [{"z": 3}] ]'::json AS list_dict
+
     destination:
       ref: PG
       table_name: moo.p2p-test

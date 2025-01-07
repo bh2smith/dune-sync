@@ -56,6 +56,7 @@ class DuneDestinationTest(unittest.TestCase):
             table_name="foo.bar",
             request_timeout=10,
         )
+
         with self.assertLogs(level=DEBUG) as logs:
             destination.save(dummy_df)
 
@@ -75,10 +76,8 @@ class DuneDestinationTest(unittest.TestCase):
     @patch("dune_client.api.table.TableAPI.create_table", name="Fake Table Creator")
     @patch("dune_client.api.table.TableAPI.insert_table", name="Fake Table Inserter")
     def test_dune_error_handling(self, mock_create_table, mock_insert_table):
-        dest = DuneDestination(
-            api_key="f00b4r", table_name="foo.bar", request_timeout=10
-        )
-        df = pd.DataFrame([{"foo": "bar"}])
+        dest = DuneDestination(api_key="f00b4r", table_name="foo", request_timeout=10)
+        df = TypedDataFrame(pd.DataFrame([{"foo": "bar"}]), {})
 
         mock_create_table.return_value = {
             "namespace": "my_user",
