@@ -1,11 +1,11 @@
 import os
 import unittest
 from logging import DEBUG, ERROR, WARNING
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pandas as pd
 import sqlalchemy
-from dune_client.models import DuneError
+from dune_client.models import DuneError, QueryFailed
 
 from src.destinations.dune import DuneDestination
 from src.destinations.postgres import PostgresDestination
@@ -48,6 +48,21 @@ class DuneDestinationTest(unittest.TestCase):
             )
         self.assertIn("Unsupported Table Existence Policy!", ctx.exception.args[0])
 
+    def test_table_exists(self):
+        mock_client = Mock()
+        dest = DuneDestination(
+            api_key="anything",
+            table_name="table.name",
+            request_timeout=10,
+            if_exists="append",
+        )
+        dest.client = mock_client
+        mock_client.run_sql.return_value = None  # Not Raise!
+        self.assertEqual(True, dest._table_exists())
+
+        mock_client.run_sql.side_effect = QueryFailed("Table not found")
+        self.assertEqual(False, dest._table_exists())
+
     @patch("dune_client.api.table.TableAPI.create_table", name="Fake Table Creator")
     @patch("dune_client.api.table.TableAPI.insert_table", name="Fake Table Inserter")
     def test_ensure_index_disabled_when_uploading(
@@ -73,6 +88,7 @@ class DuneDestinationTest(unittest.TestCase):
             ),
             types={"foo": "varchar", "baz": "varchar"},
         )
+        mock_client = Mock()
         destination = DuneDestination(
             api_key=os.getenv("DUNE_API_KEY"),
             table_name="foo.bar",
