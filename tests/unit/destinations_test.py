@@ -32,41 +32,36 @@ class DuneDestinationTest(unittest.TestCase):
                 api_key="anything",
                 table_name="INVALID_TABLE_NAME",
                 request_timeout=10,
-                if_exists="replace",
+                insertion_type="replace",
             )
         self.assertIn(
             "Table name must be in the format namespace.table_name",
             ctx.exception.args[0],
         )
 
-        with self.assertRaises(ValueError) as ctx:
-            DuneDestination(
-                api_key="anything",
-                table_name="table.name",
-                request_timeout=10,
-                if_exists="upsert",
-            )
-        self.assertIn("Unsupported Table Existence Policy!", ctx.exception.args[0])
-
     def test_table_exists(self):
         mock_client = Mock()
+
         dest = DuneDestination(
             api_key="anything",
             table_name="table.name",
             request_timeout=10,
-            if_exists="append",
+            insertion_type="append",
         )
         dest.client = mock_client
-        mock_client.run_sql.return_value = None  # Not Raise!
+        mock_result = Mock()
+        mock_result.result = "non-empty-result"
+        mock_client.run_query.return_value = mock_result
         self.assertEqual(True, dest._table_exists())
 
-        mock_client.run_sql.side_effect = QueryFailed("Table not found")
+        mock_client.run_query.side_effect = QueryFailed("Table not found")
         self.assertEqual(False, dest._table_exists())
 
-    @patch("dune_client.api.table.TableAPI.create_table", name="Fake Table Creator")
+    @patch("dune_client.api.table.TableAPI.delete_table", name="Fake Table Deleter")
     @patch("dune_client.api.table.TableAPI.insert_table", name="Fake Table Inserter")
+    @patch("dune_client.api.table.TableAPI.create_table", name="Fake Table Creator")
     def test_ensure_index_disabled_when_uploading(
-        self, mock_create_table, mock_insert_table, *_
+        self, mock_create_table, mock_insert_table, mock_delete_table, *_
     ):
         mock_create_table.return_value = {
             "namespace": "my_user",
@@ -76,7 +71,7 @@ class DuneDestinationTest(unittest.TestCase):
             "already_existed": False,
             "message": "Table created successfully",
         }
-
+        mock_delete_table.return_value = {"message": "Table deleted successfully"}
         mock_insert_table.return_value = {"rows_written": 9000, "bytes_written": 90}
 
         dummy_df = TypedDataFrame(
@@ -88,19 +83,19 @@ class DuneDestinationTest(unittest.TestCase):
             ),
             types={"foo": "varchar", "baz": "varchar"},
         )
-        mock_client = Mock()
         destination = DuneDestination(
             api_key=os.getenv("DUNE_API_KEY"),
             table_name="foo.bar",
             request_timeout=10,
-            if_exists="replace",
+            insertion_type="replace",
         )
+        destination._table_exists = Mock(return_value=True)
 
         with self.assertLogs(level=DEBUG) as logs:
             destination.save(dummy_df)
 
         self.assertIn("Uploading DF to Dune", logs.output[0])
-        self.assertIn("Inserted DF to Dune,", logs.output[1])
+        self.assertIn("Inserted DF to Dune,", logs.output[-1])
 
     @patch("pandas.core.generic.NDFrame.to_csv", name="Fake csv writer")
     def test_duneclient_sets_timeout(self, mock_to_csv, *_):
@@ -114,13 +109,18 @@ class DuneDestinationTest(unittest.TestCase):
 
     @patch("dune_client.api.table.TableAPI.create_table", name="Fake Table Creator")
     @patch("dune_client.api.table.TableAPI.insert_table", name="Fake Table Inserter")
-    def test_dune_error_handling(self, mock_create_table, mock_insert_table):
+    @patch("dune_client.api.table.TableAPI.delete_table", name="Fake Table Deleter")
+    def test_dune_error_handling(
+        self, mock_delete_table, mock_insert_table, mock_create_table, *_
+    ):
         dest = DuneDestination(
             api_key="f00b4r",
             table_name="foo.bar",
             request_timeout=10,
-            if_exists="replace",
+            insertion_type="replace",
         )
+        dest._table_exists = Mock(return_value=False)
+
         df = TypedDataFrame(pd.DataFrame([{"foo": "bar"}]), {})
 
         mock_create_table.return_value = {
@@ -130,6 +130,9 @@ class DuneDestinationTest(unittest.TestCase):
             "example_query": "select * from dune.my_user.my_data",
             "already_existed": False,
             "message": "Table created successfully",
+        }
+        mock_delete_table.return_value = {
+            "message": "Table bh2smith.dune_sync_test successfully deleted"
         }
         mock_insert_table.return_value = {"rows_written": 9000, "bytes_written": 90}
         dune_err = DuneError(
@@ -173,17 +176,24 @@ class DuneDestinationTest(unittest.TestCase):
         expected_message = "Data processing error: Big Oops"
         self.assertIn(expected_message, logs.output[0])
 
+        # Reset all mocks to ensure clean state
         mock_create_table.reset_mock()
+        mock_insert_table.reset_mock()
+        mock_delete_table.reset_mock()
 
         # TIL: reset_mock() doesn't clear side effects....
         mock_create_table.side_effect = None
+        mock_create_table.return_value = None
 
+        # Set return values explicitly
         mock_create_table.return_value = None
 
         with self.assertLogs(level=ERROR) as logs:
             dest.save(df)
 
         mock_create_table.assert_called_once()
+        mock_delete_table.assert_called_once()
+
         self.assertIn("Dune Upload Failed", logs.output[0])
 
 

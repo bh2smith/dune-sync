@@ -11,9 +11,10 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import insert
 
-from src.destinations.common import TableExistsPolicy
 from src.interfaces import Destination, TypedDataFrame
 from src.logger import log
+
+TableExistsPolicy = Literal["append", "replace", "upsert", "insert_ignore"]
 
 
 class PostgresDestination(Destination[TypedDataFrame]):

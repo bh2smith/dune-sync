@@ -142,7 +142,8 @@ class PostgresSource(Source[TypedDataFrame]):
         with self.engine.connect() as conn:
             result = conn.execute(text(self.query_string))
             types = {
-                col.name: PG_TO_DUNE[col.type_code] for col in result.cursor.description
+                col.name: PG_TO_DUNE.get(col.type_code, "varchar")
+                for col in result.cursor.description
             }
         df = await loop.run_in_executor(
             None, lambda: pd.read_sql_query(self.query_string, con=self.engine)

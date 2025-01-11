@@ -1,13 +1,18 @@
 """Destination logic for Dune Analytics."""
 
 import io
+from typing import Literal
 
 from dune_client.client import DuneClient
 from dune_client.models import DuneError, QueryFailed
+from dune_client.query import QueryBase
+from dune_client.types import QueryParameter
+from pandas import DataFrame
 
-from src.destinations.common import TableExistsPolicy
 from src.interfaces import Destination, TypedDataFrame
 from src.logger import log
+
+InsertionPolicy = Literal["append", "replace", "upload_csv"]
 
 
 class DuneDestination(Destination[TypedDataFrame]):
@@ -34,20 +39,14 @@ class DuneDestination(Destination[TypedDataFrame]):
         api_key: str,
         table_name: str,
         request_timeout: int,
-        if_exists: TableExistsPolicy = "append",
+        insertion_type: InsertionPolicy = "append",
     ):
         self.client = DuneClient(api_key, request_timeout=request_timeout)
         if "." not in table_name:
             raise ValueError("Table name must be in the format namespace.table_name")
 
         self.table_name: str = table_name
-        if if_exists not in {"append", "replace"}:
-            # TODO - Dune (support insert_ignore & upsert on table endpoints).
-            raise ValueError(
-                "Unsupported Table Existence Policy! "
-                "if_exists must be 'append' or 'replace'"
-            )
-        self.if_exists: TableExistsPolicy = if_exists
+        self.insertion_type: InsertionPolicy = insertion_type
         super().__init__()
 
     def validate(self) -> bool:
@@ -79,38 +78,57 @@ class DuneDestination(Destination[TypedDataFrame]):
         """
         try:
             log.debug("Uploading DF to Dune...")
-            namespace, table_name = self._get_namespace_and_table_name()
-            if not self._skip_create():
-                self.client.create_table(
-                    namespace,
-                    table_name,
-                    schema=[
-                        {"name": name, "type": dtype}
-                        for name, dtype in data.types.items()
-                    ],
-                )
-            result = self.client.insert_table(
-                namespace,
-                table_name,
-                data=io.BytesIO(data.dataframe.to_csv(index=False).encode()),
-                content_type="text/csv",
-            )
-            if not result:
-                raise RuntimeError("Dune Upload Failed")
-            log.debug("Inserted DF to Dune, %s", result)
+            if self.insertion_type == "upload_csv":
+                self._upload_csv(data.dataframe)
+            else:
+                self._insert(data)
+            log.debug("Inserted DF to Dune, %s")
         except DuneError as dune_e:
             log.error("Dune did not accept our upload: %s", dune_e)
         except (ValueError, RuntimeError) as e:
             log.error("Data processing error: %s", e)
         return len(data)
 
-    def _skip_create(self) -> bool:
-        return self.if_exists == "append" and self._table_exists()
+    def _insert(self, data: TypedDataFrame) -> None:
+        namespace, table_name = self._get_namespace_and_table_name()
+        if self.insertion_type == "replace":
+            log.warning("Replacement feature is unstable!")
+            log.info("Deleting table: %s", table_name)
+            delete = self.client.delete_table(namespace, table_name)
+            log.info("Deleted: %s", delete)
+
+        if not self._table_exists():
+            log.info("Creating table: %s", self.table_name)
+            create = self.client.create_table(
+                namespace,
+                table_name,
+                schema=[
+                    {"name": name, "type": dtype} for name, dtype in data.types.items()
+                ],
+            )
+            if not create:
+                raise RuntimeError("Dune Upload Failed")
+            log.info("Created: %s", create)
+        log.info("Inserting to: %s", self.table_name)
+        self.client.insert_table(
+            namespace,
+            table_name,
+            data=io.BytesIO(data.dataframe.to_csv(index=False).encode()),
+            content_type="text/csv",
+        )
+
+    def _upload_csv(self, data: DataFrame) -> None:
+        self.client.upload_csv(self.table_name, data.dataframe.to_csv(index=False))
 
     def _table_exists(self) -> bool:
         try:
-            self.client.run_sql(f"SELECT count(*) FROM dune.{self.table_name}")
-            return True
+            results = self.client.run_query(
+                QueryBase(
+                    4554525,
+                    params=[QueryParameter.text_type("table_name", self.table_name)],
+                )
+            )
+            return results.result is not None
         except QueryFailed:
             return False
 
