@@ -16,4 +16,4 @@ jobs:
       query_string: foo.sql
     destination:
       ref: dune
-      table_name: table_name
+      table_name: table.name

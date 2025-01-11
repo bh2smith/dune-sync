@@ -305,6 +305,8 @@ class RuntimeConfig:
                 f' "{dest_config["ref"]}" defined in config'
             ) from e
 
+        if_exists = dest_config.get("if_exists", "append")
+
         match dest.type:
             case Database.DUNE:
                 try:
@@ -323,13 +325,14 @@ class RuntimeConfig:
                     api_key=dest.key,
                     table_name=dest_config["table_name"],
                     request_timeout=request_timeout,
+                    if_exists=if_exists,
                 )
 
             case Database.POSTGRES:
                 return PostgresDestination(
                     db_url=dest.key,
                     table_name=dest_config["table_name"],
-                    if_exists=dest_config.get("if_exists", "append"),
+                    if_exists=if_exists,
                     index_columns=dest_config.get("index_columns", []),
                 )
         raise ValueError(f"Unsupported destination_db type: {dest}")

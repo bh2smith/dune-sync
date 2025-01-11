@@ -37,6 +37,7 @@ jobs:
     destination:
       ref: Dune
       table_name: bh2smith.dune_sync_test
+      if_exists: append
 
   - name: cow-solvers
     source:

@@ -26,6 +26,28 @@ class DuneDestinationTest(unittest.TestCase):
         )
         cls.env_patcher.start()
 
+    def test_init_validation(self):
+        with self.assertRaises(ValueError) as ctx:
+            DuneDestination(
+                api_key="anything",
+                table_name="INVALID_TABLE_NAME",
+                request_timeout=10,
+                if_exists="replace",
+            )
+        self.assertIn(
+            "Table name must be in the format namespace.table_name",
+            ctx.exception.args[0],
+        )
+
+        with self.assertRaises(ValueError) as ctx:
+            DuneDestination(
+                api_key="anything",
+                table_name="table.name",
+                request_timeout=10,
+                if_exists="upsert",
+            )
+        self.assertIn("Unsupported Table Existence Policy!", ctx.exception.args[0])
+
     @patch("dune_client.api.table.TableAPI.create_table", name="Fake Table Creator")
     @patch("dune_client.api.table.TableAPI.insert_table", name="Fake Table Inserter")
     def test_ensure_index_disabled_when_uploading(
@@ -55,6 +77,7 @@ class DuneDestinationTest(unittest.TestCase):
             api_key=os.getenv("DUNE_API_KEY"),
             table_name="foo.bar",
             request_timeout=10,
+            if_exists="replace",
         )
 
         with self.assertLogs(level=DEBUG) as logs:
@@ -68,7 +91,7 @@ class DuneDestinationTest(unittest.TestCase):
         for timeout in [1, 10, 100, 1000, 1500]:
             destination = DuneDestination(
                 api_key=os.getenv("DUNE_API_KEY"),
-                table_name="foo",
+                table_name="foo.bar",
                 request_timeout=timeout,
             )
             assert destination.client.request_timeout == timeout
@@ -77,7 +100,10 @@ class DuneDestinationTest(unittest.TestCase):
     @patch("dune_client.api.table.TableAPI.insert_table", name="Fake Table Inserter")
     def test_dune_error_handling(self, mock_create_table, mock_insert_table):
         dest = DuneDestination(
-            api_key="f00b4r", table_name="foo.bar", request_timeout=10
+            api_key="f00b4r",
+            table_name="foo.bar",
+            request_timeout=10,
+            if_exists="replace",
         )
         df = TypedDataFrame(pd.DataFrame([{"foo": "bar"}]), {})
 

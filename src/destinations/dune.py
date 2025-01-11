@@ -3,8 +3,9 @@
 import io
 
 from dune_client.client import DuneClient
-from dune_client.models import DuneError
+from dune_client.models import DuneError, QueryFailed
 
+from src.destinations.common import TableExistsPolicy
 from src.interfaces import Destination, TypedDataFrame
 from src.logger import log
 
@@ -28,9 +29,25 @@ class DuneDestination(Destination[TypedDataFrame]):
 
     """
 
-    def __init__(self, api_key: str, table_name: str, request_timeout: int):
+    def __init__(
+        self,
+        api_key: str,
+        table_name: str,
+        request_timeout: int,
+        if_exists: TableExistsPolicy = "append",
+    ):
         self.client = DuneClient(api_key, request_timeout=request_timeout)
+        if "." not in table_name:
+            raise ValueError("Table name must be in the format namespace.table_name")
+
         self.table_name: str = table_name
+        if if_exists not in {"append", "replace"}:
+            # TODO - Dune (support insert_ignore & upsert on table endpoints).
+            raise ValueError(
+                "Unsupported Table Existence Policy! "
+                "if_exists must be 'append' or 'replace'"
+            )
+        self.if_exists: TableExistsPolicy = if_exists
         super().__init__()
 
     def validate(self) -> bool:
@@ -63,14 +80,15 @@ class DuneDestination(Destination[TypedDataFrame]):
         try:
             log.debug("Uploading DF to Dune...")
             namespace, table_name = self._get_namespace_and_table_name()
-            # TODO check first if table exists? Or warn if it did...
-            self.client.create_table(
-                namespace,
-                table_name,
-                schema=[
-                    {"name": name, "type": dtype} for name, dtype in data.types.items()
-                ],
-            )
+            if not self._skip_create():
+                self.client.create_table(
+                    namespace,
+                    table_name,
+                    schema=[
+                        {"name": name, "type": dtype}
+                        for name, dtype in data.types.items()
+                    ],
+                )
             result = self.client.insert_table(
                 namespace,
                 table_name,
@@ -86,9 +104,17 @@ class DuneDestination(Destination[TypedDataFrame]):
             log.error("Data processing error: %s", e)
         return len(data)
 
+    def _skip_create(self) -> bool:
+        return self.if_exists == "append" and self._table_exists()
+
+    def _table_exists(self) -> bool:
+        try:
+            self.client.run_sql(f"SELECT count(*) FROM dune.{self.table_name}")
+            return True
+        except QueryFailed:
+            return False
+
     def _get_namespace_and_table_name(self) -> tuple[str, str]:
         """Split the namespace, table name from the provided table name."""
-        if "." not in self.table_name:
-            raise ValueError("Table name must be in the format namespace.table_name")
         namespace, table_name = self.table_name.split(".")
         return namespace, table_name
