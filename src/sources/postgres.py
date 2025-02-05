@@ -140,8 +140,9 @@ class PostgresSource(Source[TypedDataFrame]):
         df = await loop.run_in_executor(
             None, lambda: pd.read_sql_query(self.query_string, con=self.engine)
         )
-        df = _convert_bytea_to_hex(df)
+
         df = _convert_dict_to_json(df)
+        df = _convert_bytea_to_hex(df)
         # TODO include types.
         return TypedDataFrame(dataframe=df, types={})
 

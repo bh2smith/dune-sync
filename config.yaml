@@ -58,7 +58,6 @@ jobs:
           '\\x1234'::bytea AS my_bytes,
           ARRAY['\\x1234'::bytea, '\\x5678'::bytea] AS array_bytea,
           '{"key": "value", "array": [1, 2, 3], "dict": {}}'::json AS my_json
-          -- '[ [{"x": 1}, {"y": 2}], null, [{"z": 3}] ]'::json AS list_dict
 
     destination:
       ref: PG
