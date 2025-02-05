@@ -24,7 +24,7 @@ def _convert_dict_to_json(df: DataFrame) -> DataFrame:
         non_null_values = df[column][df[column].notna()]
         if len(non_null_values) > 0:
             first_value = non_null_values.iloc[0]
-            if isinstance(first_value, dict | list):
+            if isinstance(first_value, dict):
                 df[column] = df[column].apply(
                     lambda x: json.dumps(x) if x is not None else None
                 )

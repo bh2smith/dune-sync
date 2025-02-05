@@ -99,13 +99,6 @@ class TestSourceUtils(unittest.TestCase):
             None,
         ]
 
-        # Assert list of dictionaries was converted
-        assert result["list_dict"].tolist() == [
-            '[{"x": 1}, {"y": 2}]',
-            None,
-            '[{"z": 3}]',
-        ]
-
         # Assert normal column remains unchanged
         assert result["normal_col"].tolist() == [1, 2, 3]
 
