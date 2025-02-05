@@ -13,3 +13,6 @@ coverage.xml
 
 # Metrics
 grafana
+
+# This is like a users local config.
+config.yaml
