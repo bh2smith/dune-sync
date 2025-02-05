@@ -24,7 +24,7 @@ def _convert_dict_to_json(df: DataFrame) -> DataFrame:
         non_null_values = df[column][df[column].notna()]
         if len(non_null_values) > 0:
             first_value = non_null_values.iloc[0]
-            if isinstance(first_value, dict | list):
+            if isinstance(first_value, dict):
                 df[column] = df[column].apply(
                     lambda x: json.dumps(x) if x is not None else None
                 )
@@ -57,6 +57,10 @@ def _convert_bytea_to_hex(df: DataFrame) -> DataFrame:
     for column in df.columns:
         if isinstance(df[column].iloc[0], memoryview):
             df[column] = df[column].apply(lambda x: f"0x{x.tobytes().hex()}")
+        # if isinstance(df[column].iloc[0], list):
+        #     # Check if the list contains memoryview objects
+        #     if all(isinstance(item, memoryview) for item in df[column].iloc[0]):
+        #         df[column] = df[column].apply(lambda lst: [f"0x{item.tobytes().hex()}" for item in lst])
     return df
 
 
@@ -140,9 +144,8 @@ class PostgresSource(Source[TypedDataFrame]):
         df = await loop.run_in_executor(
             None, lambda: pd.read_sql_query(self.query_string, con=self.engine)
         )
-
-        df = _convert_dict_to_json(df)
         df = _convert_bytea_to_hex(df)
+        df = _convert_dict_to_json(df)
         # TODO include types.
         return TypedDataFrame(dataframe=df, types={})
 
