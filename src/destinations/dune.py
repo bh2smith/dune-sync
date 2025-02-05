@@ -1,6 +1,7 @@
 """Destination logic for Dune Analytics."""
 
 import io
+import sys
 from typing import Literal
 
 from dune_client.client import DuneClient
@@ -76,49 +77,45 @@ class DuneDestination(Destination[TypedDataFrame]):
             For any data processing issues prior to the upload.
 
         """
-        try:
-            log.debug("Uploading DF to Dune...")
-            if self.insertion_type == "upload_csv":
-                self._upload_csv(data.dataframe)
-            else:
-                self._insert(data)
-            log.debug("Inserted DF to Dune, %s")
-        except DuneError as dune_e:
-            log.error("Dune did not accept our upload: %s", dune_e)
-        except (ValueError, RuntimeError) as e:
-            log.error("Data processing error: %s", e)
-        return len(data)
+        log.debug("Uploading DF to Dune...")
+        if self.insertion_type == "upload_csv":
+            if not self._upload_csv(data.dataframe):
+                raise RuntimeError("Dune Upload Failed")
+        else:
+            self._insert(data)
+        log.debug("Inserted DF to Dune, %s")
+
+        return len(data.dataframe)
 
     def _insert(self, data: TypedDataFrame) -> None:
         namespace, table_name = self._get_namespace_and_table_name()
-        if self.insertion_type == "replace":
-            log.warning("Replacement feature is unstable!")
-            log.info("Deleting table: %s", table_name)
-            delete = self.client.delete_table(namespace, table_name)
-            log.info("Deleted: %s", delete)
+        try:
+            if self.insertion_type == "replace":
+                log.debug("Clearing table: %s", table_name)
+                clear_result = self.client.clear_data(namespace, table_name)
+                log.debug("Cleared: %s", clear_result)
 
-        if not self._table_exists():
-            log.info("Creating table: %s", self.table_name)
-            create = self.client.create_table(
+            log.info("Inserting to: %s", self.table_name)
+            self.client.insert_table(
                 namespace,
                 table_name,
-                schema=[
-                    {"name": name, "type": dtype} for name, dtype in data.types.items()
-                ],
+                data=io.BytesIO(data.dataframe.to_csv(index=False).encode()),
+                content_type="text/csv",
             )
-            if not create:
-                raise RuntimeError("Dune Upload Failed")
-            log.info("Created: %s", create)
-        log.info("Inserting to: %s", self.table_name)
-        self.client.insert_table(
-            namespace,
-            table_name,
-            data=io.BytesIO(data.dataframe.to_csv(index=False).encode()),
-            content_type="text/csv",
-        )
+        except DuneError as err:
+            if "This table was not found" in str(err):
+                api_ref = "https://docs.dune.com/api-reference/tables/endpoint/create"
+                log.error(
+                    "Table %s doesn't exist. See %s for table creation details.",
+                    self.table_name,
+                    api_ref,
+                )
+            raise err
 
-    def _upload_csv(self, data: DataFrame) -> None:
-        self.client.upload_csv(self.table_name, data.dataframe.to_csv(index=False))
+    def _upload_csv(self, data: DataFrame) -> bool:
+        return self.client.upload_csv(
+            self.table_name, data.to_csv(index=False)
+        )
 
     def _table_exists(self) -> bool:
         try:

@@ -57,21 +57,14 @@ class DuneDestinationTest(unittest.TestCase):
         mock_client.run_query.side_effect = QueryFailed("Table not found")
         self.assertEqual(False, dest._table_exists())
 
-    @patch("dune_client.api.table.TableAPI.delete_table", name="Fake Table Deleter")
     @patch("dune_client.api.table.TableAPI.insert_table", name="Fake Table Inserter")
-    @patch("dune_client.api.table.TableAPI.create_table", name="Fake Table Creator")
+    @patch("dune_client.api.table.TableAPI.clear_data", name="Fake Clearer")
     def test_ensure_index_disabled_when_uploading(
-        self, mock_create_table, mock_insert_table, mock_delete_table, *_
+        self, mock_clear, mock_insert_table, *_
     ):
-        mock_create_table.return_value = {
-            "namespace": "my_user",
-            "table_name": "my_data",
-            "full_name": "dune.my_user.my_data",
-            "example_query": "select * from dune.my_user.my_data",
-            "already_existed": False,
-            "message": "Table created successfully",
+        mock_clear.return_value = {
+            "message": "Table my_user.interest_rates successfully cleared"
         }
-        mock_delete_table.return_value = {"message": "Table deleted successfully"}
         mock_insert_table.return_value = {"rows_written": 9000, "bytes_written": 90}
 
         dummy_df = TypedDataFrame(
@@ -107,12 +100,10 @@ class DuneDestinationTest(unittest.TestCase):
             )
             assert destination.client.request_timeout == timeout
 
-    @patch("dune_client.api.table.TableAPI.create_table", name="Fake Table Creator")
+    @patch("dune_client.api.table.TableAPI.clear_data", name="Fake Data Clearer")
+    @patch("dune_client.api.table.TableAPI.upload_csv", name="Fake CSV Uploader")
     @patch("dune_client.api.table.TableAPI.insert_table", name="Fake Table Inserter")
-    @patch("dune_client.api.table.TableAPI.delete_table", name="Fake Table Deleter")
-    def test_dune_error_handling(
-        self, mock_delete_table, mock_insert_table, mock_create_table, *_
-    ):
+    def test_dune_error_handling(self, mock_insert_table, mock_csv, mock_clear, *_):
         dest = DuneDestination(
             api_key="f00b4r",
             table_name="foo.bar",
@@ -123,77 +114,79 @@ class DuneDestinationTest(unittest.TestCase):
 
         df = TypedDataFrame(pd.DataFrame([{"foo": "bar"}]), {})
 
-        mock_create_table.return_value = {
-            "namespace": "my_user",
-            "table_name": "my_data",
-            "full_name": "dune.my_user.my_data",
-            "example_query": "select * from dune.my_user.my_data",
-            "already_existed": False,
-            "message": "Table created successfully",
-        }
-        mock_delete_table.return_value = {
-            "message": "Table bh2smith.dune_sync_test successfully deleted"
-        }
         mock_insert_table.return_value = {"rows_written": 9000, "bytes_written": 90}
-        dune_err = DuneError(
-            data={"error": "bad stuff"},
+        dune_not_exist_error = DuneError(
+            data={"error": "This table was not found"},
+            response_class="response",
+            err=KeyError("you missed something"),
+        )
+        dune_other_error = DuneError(
+            data={"error": "Bad Request"},
             response_class="response",
             err=KeyError("you missed something"),
         )
         val_err = ValueError("Oops")
         runtime_err = RuntimeError("Big Oops")
 
-        mock_create_table.side_effect = dune_err
+        mock_clear.side_effect = dune_not_exist_error
 
+        with self.assertRaises(DuneError) as err:
+            dest.save(df)
+
+        self.assertEqual(err.exception, dune_not_exist_error)
+
+        mock_clear.assert_called_once()
+
+
+        mock_clear.reset_mock()
+        mock_clear.side_effect = dune_other_error
+
+        with self.assertRaises(DuneError) as err:
+            dest.save(df)
+
+        mock_clear.assert_called_once()
+
+        self.assertEqual(err.exception, dune_other_error)
+
+        mock_clear.reset_mock()
+        mock_clear.side_effect = val_err
+
+        with self.assertRaises(ValueError) as err:
+            dest.save(df)
+
+        mock_clear.assert_called_once()
+        self.assertEqual(err.exception, val_err)
+
+        mock_clear.reset_mock()
+        mock_clear.side_effect = runtime_err
         with self.assertLogs(level=ERROR) as logs:
             dest.save(df)
 
-        mock_create_table.assert_called_once()
 
-        # does this shit really look better just because it's < 88 characters long?
-        exmsg = (
-            "Dune did not accept our upload: "
-            "Can't build response from {'error': 'bad stuff'}"
-        )
-        self.assertIn(exmsg, logs.output[0])
+        # Upload CSV:
+        dest.insertion_type = "upload_csv"
 
-        mock_create_table.reset_mock()
-        mock_create_table.side_effect = val_err
+        mock_csv.return_value = False
 
+        # mock_clear.assert_called_once()
+        # expected_message = "Data processing error: Big Oops"
+        # self.assertIn(expected_message, logs.output[0])
+        #
+        # # Reset all mocks to ensure clean state
+        # mock_clear.reset_mock()
+        # mock_insert_table.reset_mock()
+        #
+        # # TIL: reset_mock() doesn't clear side effects....
+        # mock_clear.side_effect = None
+        # mock_clear.return_value = None
+        #
+        # # Set return values explicitly
+        # mock_clear.return_value = None
+        #
         with self.assertLogs(level=ERROR) as logs:
             dest.save(df)
 
-        mock_create_table.assert_called_once()
-        expected_message = "Data processing error: Oops"
-        self.assertIn(expected_message, logs.output[0])
-
-        mock_create_table.reset_mock()
-        mock_create_table.side_effect = runtime_err
-        with self.assertLogs(level=ERROR) as logs:
-            dest.save(df)
-
-        mock_create_table.assert_called_once()
-        expected_message = "Data processing error: Big Oops"
-        self.assertIn(expected_message, logs.output[0])
-
-        # Reset all mocks to ensure clean state
-        mock_create_table.reset_mock()
-        mock_insert_table.reset_mock()
-        mock_delete_table.reset_mock()
-
-        # TIL: reset_mock() doesn't clear side effects....
-        mock_create_table.side_effect = None
-        mock_create_table.return_value = None
-
-        # Set return values explicitly
-        mock_create_table.return_value = None
-
-        with self.assertLogs(level=ERROR) as logs:
-            dest.save(df)
-
-        mock_create_table.assert_called_once()
-        mock_delete_table.assert_called_once()
-
+        mock_csv.assert_called_once()
         self.assertIn("Dune Upload Failed", logs.output[0])
 
 
