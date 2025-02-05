@@ -323,6 +323,7 @@ class RuntimeConfig:
                     api_key=dest.key,
                     table_name=dest_config["table_name"],
                     request_timeout=request_timeout,
+                    insertion_type=dest_config.get("insertion_type", "append"),
                 )
 
             case Database.POSTGRES:

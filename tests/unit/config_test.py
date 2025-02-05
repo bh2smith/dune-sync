@@ -55,7 +55,7 @@ class TestRuntimeConfig(unittest.IsolatedAsyncioTestCase):
                 "POLL_FREQUENCY_DUNE_PG": "192",
                 "BLOCKCHAIN_NAME": "moosis",
                 "WHAT_IF_EXISTS": "replace",
-                "table_name": "my_pg_table",
+                "table_name": "my.pg_table",
             },
             clear=True,
         )
@@ -113,7 +113,7 @@ class TestRuntimeConfig(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(int("192"), dune_to_pg_job.source.poll_frequency)
         self.assertEqual("moosis", dune_to_pg_job.source.query.params[0].value)
         self.assertEqual("replace", dune_to_pg_job.destination.if_exists)
-        self.assertEqual("my_pg_table", pg_to_dune_job.destination.table_name)
+        self.assertEqual("my.pg_table", pg_to_dune_job.destination.table_name)
 
         config_file = config_root / "basic_with_env_missing_vars.yaml"
         with self.assertRaises(KeyError):

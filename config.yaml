@@ -33,10 +33,16 @@ jobs:
   - name: p2d-test
     source:
       ref: PG
-      query_string: "SELECT 1 as number, '\\x1234'::bytea as my_bytes;"
+      query_string: |
+        SELECT 
+          1 AS number, 
+          '\\x1234'::bytea AS my_bytes,
+          '{"key": "value", "array": [1, 2, 3], "dict": {}}'::json AS my_json,
+          '[ [{"x": 1}, {"y": 2}], null, [{"z": 3}] ]'::json AS list_dict
     destination:
       ref: Dune
-      table_name: dune_sync_test_table
+      table_name: bh2smith.dune_sync_test
+      insertion_type: replace
 
   - name: cow-solvers
     source:

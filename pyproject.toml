@@ -9,12 +9,12 @@ description = ""
 authors = [
     "Benjamin Smith <bh2smith@users.noreply.github.com>",
     "mooster531 <mooster531@users.noreply.github.com>",
-    "Felix Leupold <masked@example.com>"
+    "Felix Leupold <masked@example.com>",
 ]
 
 [tool.poetry.dependencies]
 python = ">=3.12,<3.14"
-dune-client = ">=1.7.7"
+dune-client = ">=1.7.8"
 pandas = "*"
 sqlalchemy = "*"
 python-dotenv = "*"
@@ -28,7 +28,7 @@ black = "*"
 pylint = "*"
 pre-commit = "*"
 pytest = "*"
-pytest-cov="*"
+pytest-cov = "*"
 pytest-asyncio = "*"
 pandas-stubs = "*"
 sqlalchemy-stubs = "*"
@@ -58,17 +58,17 @@ exclude = [
 
 [tool.ruff.lint]
 select = [
-    "E", # pycodestyle errors
-    "F", # pyflakes
-    "I", # isort
-    "B", # flake8-bugbear
-    "C4", # flake8-comprehensions
-    "UP", # pyupgrade
-    "N", # pep8-naming
-    "D", # pydocstring
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "N",   # pep8-naming
+    "D",   # pydocstring
     "T20", # flake8-print
     "RET", # flake8-return
-    "PL", # pylint
+    "PL",  # pylint
 ]
 
 ignore = [
@@ -80,11 +80,11 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*" = [
-    "D", # Ignore all docstring rules in tests
-    "T20", # Allow print statements in tests
+    "D",    # Ignore all docstring rules in tests
+    "T20",  # Allow print statements in tests
     "N802", # Allow function names like "test_someFunction_does_something"
     "B018", # Allow using mock objects without explicit assert
-    "RET", # Allow multiple returns in test functions
+    "RET",  # Allow multiple returns in test functions
     "E731", # Allow lambda assignments in tests
 ]
 
