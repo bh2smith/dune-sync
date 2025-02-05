@@ -57,10 +57,6 @@ def _convert_bytea_to_hex(df: DataFrame) -> DataFrame:
     for column in df.columns:
         if isinstance(df[column].iloc[0], memoryview):
             df[column] = df[column].apply(lambda x: f"0x{x.tobytes().hex()}")
-        # if isinstance(df[column].iloc[0], list):
-        #     # Check if the list contains memoryview objects
-        #     if all(isinstance(item, memoryview) for item in df[column].iloc[0]):
-        #         df[column] = df[column].apply(lambda lst: [f"0x{item.tobytes().hex()}" for item in lst])
     return df
 
 
