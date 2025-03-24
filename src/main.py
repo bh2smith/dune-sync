@@ -17,7 +17,7 @@ Arguments:
 
 Environment Variables:
     Required environment variables depend on the configured sources and destinations.
-    Typically includes database connection strings and API keys.
+    Typically, includes database connection strings and API keys.
 
 """
 

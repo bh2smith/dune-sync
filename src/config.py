@@ -307,22 +307,10 @@ class RuntimeConfig:
 
         match dest.type:
             case Database.DUNE:
-                try:
-                    request_timeout = dest_config["request_timeout"]
-                    request_timeout = int(request_timeout)
-                except KeyError:
-                    log.debug("Dune request timeout not set: defaulting to 10")
-                    request_timeout = 10
-                except ValueError as e:
-                    log.error(
-                        "request_timeout parameter must be a number, received type %s",
-                        type(request_timeout),
-                    )
-                    raise e
                 return DuneDestination(
                     api_key=dest.key,
                     table_name=dest_config["table_name"],
-                    request_timeout=request_timeout,
+                    request_timeout=int(dest_config.get("request_timeout", 10)),
                 )
 
             case Database.POSTGRES:
