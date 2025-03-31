@@ -16,7 +16,7 @@ RUN POETRY_VIRTUALENVS_CREATE=false python -m poetry install --no-dev
 FROM base AS dev
 RUN POETRY_VIRTUALENVS_CREATE=false python -m poetry install
 
-#CMD ["python", "-m", "src.main"]
+CMD ["python", "-m", "src.main"]
 
 # Prod
 FROM python:3.13-alpine AS prod

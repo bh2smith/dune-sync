@@ -53,6 +53,10 @@ services:
     networks:
       - monitor-net
     user: "1000"
+  app:
+    build:
+      dockerfile: Dockerfile
+#      target: base
 volumes:
   pg_data:
   prometheus_data: { }

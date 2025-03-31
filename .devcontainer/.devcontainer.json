@@ -1,0 +1,44 @@
+{
+  "name": "dune-sync development container",
+  "dockerComposeFile": "../docker-compose.yml",
+  "service": "app",
+  "features": {
+    "ghcr.io/devcontainers/features/python:latest": {
+      "installTools": false,
+      "version": "3.13"
+    }
+  },
+  "customizations": {
+    "jetbrains": {
+      "settings": {
+        "com.intellij:app:EditorSettings.is_ensure_newline_at_eof": true,
+        "com.intellij:app:GeneralSettings.searchInBackground": true,
+        "Git4Idea:app:Git-Application-Settings.myPathToGit": "/usr/bin/git",
+        "org.jetbrains.plugins.github:app:GithubSettings.clone_git_using_ssh": true,
+        "com.intellij:app:Vcs-Log-App-Settings.show_changes_from_parents": true,
+      }
+    },
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.black-formatter",
+        "charliermarsh.ruff"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.linting.enabled": true,
+        "python.linting.pylintEnabled": false,
+        "python.linting.ruffEnabled": true,
+        "python.formatting.provider": "black",
+        "editor.formatOnSave": true
+      }
+    }
+  },
+  "postCreateCommand": "poetry install --no-root",
+  "containerEnv": {
+    "PYTHONPATH": "../",
+  },
+  "remoteEnv": {
+    "PYTHONPATH": "../"
+  }
+}
