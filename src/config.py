@@ -13,14 +13,13 @@ from urllib.parse import urlsplit
 import requests
 import yaml
 from dotenv import load_dotenv
-from dune_client.query import QueryBase
 
 from src.destinations.dune import DuneDestination
 from src.destinations.postgres import PostgresDestination
 from src.interfaces import Destination, Source
 from src.job import Database, Job
 from src.logger import log
-from src.sources.dune import DuneSource, parse_query_parameters
+from src.sources.dune import DuneSource, DuneSourceConfig
 from src.sources.postgres import PostgresSource
 
 
@@ -259,15 +258,7 @@ class RuntimeConfig:
         match source.type:
             case Database.DUNE:
                 return DuneSource(
-                    api_key=source.key,
-                    query=QueryBase(
-                        query_id=int(source_config["query_id"]),
-                        params=parse_query_parameters(
-                            source_config.get("parameters", [])
-                        ),
-                    ),
-                    poll_frequency=source_config.get("poll_frequency", 1),
-                    query_engine=source_config.get("query_engine", "medium"),
+                    dune_config=DuneSourceConfig(source.key, source_config)
                 )
 
             case Database.POSTGRES:
