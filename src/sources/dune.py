@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 from abc import ABC
+from dataclasses import dataclass
 from typing import Any, Literal
 
 import pandas as pd
@@ -40,6 +41,28 @@ DUNE_TO_PG: dict[str, type[Any] | NUMERIC] = {
     "timestamp with time zone": TIMESTAMP,
     "uint256": NUMERIC,
 }
+
+
+@dataclass
+class DuneSourceConfig:
+    """Represents Parameters used by Dune Client and Query execution constructors."""
+
+    api_key: str
+    query: QueryBase
+    request_timeout: int
+    poll_frequency: int
+    query_engine: Literal["medium", "large"]
+
+    def __init__(self, api_key: str, data: dict[str, Any]):
+        self.api_key = api_key
+        if data["query_id"] is not None:
+            self.query = QueryBase(
+                query_id=int(data["query_id"]),
+                params=parse_query_parameters(data.get("parameters", [])),
+            )
+        self.request_timeout = int(data.get("request_timeout", 10))
+        self.poll_frequency = int(data.get("poll_frequency", 1))
+        self.query_engine = data.get("query_engine", "medium")
 
 
 def _parse_varchar_type(type_str: str) -> int | None:
@@ -240,14 +263,15 @@ class DuneSource(Source[TypedDataFrame], ABC):
 
     def __init__(
         self,
-        api_key: str,
-        query: QueryBase,
-        poll_frequency: int = 1,
-        query_engine: Literal["medium", "large"] = "medium",
+        dune_config: DuneSourceConfig,
     ) -> None:
-        self.query = query
-        self.poll_frequency = poll_frequency
-        self.client = AsyncDuneClient(api_key, performance=query_engine)
+        self.query = dune_config.query
+        self.poll_frequency = dune_config.poll_frequency
+        self.client = AsyncDuneClient(
+            dune_config.api_key,
+            performance=dune_config.query_engine,
+            request_timeout=dune_config.request_timeout,
+        )
         super().__init__()
 
     def validate(self) -> bool:

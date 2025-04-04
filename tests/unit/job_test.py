@@ -2,11 +2,10 @@ import unittest
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
-from dune_client.query import QueryBase
 
 from src.destinations.postgres import PostgresDestination
 from src.job import Database, Job
-from src.sources.dune import DuneSource
+from src.sources.dune import DuneSource, DuneSourceConfig
 
 
 class DatabaseTests(unittest.IsolatedAsyncioTestCase):
@@ -20,7 +19,7 @@ class DatabaseTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("Unknown Database type: redis", exc.exception.args[0])
 
     def test_job_name_formatting(self):
-        src = DuneSource(api_key="f00b4r", query=QueryBase(query_id=1234))
+        src = DuneSource(DuneSourceConfig(api_key="f00b4r", data={"query_id": 1234}))
         dest = PostgresDestination(
             db_url="postgresql://postgres:postgres@localhost:5432/postgres",
             table_name="some_table",
@@ -31,7 +30,7 @@ class DatabaseTests(unittest.IsolatedAsyncioTestCase):
     @pytest.mark.asyncio
     @patch("src.metrics.push_to_gateway")
     async def test_metrics_collection(self, mock_metrics_push, *_):
-        src = DuneSource(api_key="f00b4r", query=QueryBase(query_id=1234))
+        src = DuneSource(DuneSourceConfig(api_key="f00b4r", data={"query_id": 1234}))
         dest = PostgresDestination(
             db_url="postgresql://postgres:postgres@localhost:5432/postgres",
             table_name="some_table",

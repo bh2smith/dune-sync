@@ -14,15 +14,10 @@ class DuneDestination(Destination[TypedDataFrame]):
 
     Attributes
     ----------
-    api_key : str
-        The API key used for accessing the Dune Analytics API.
+    client : DuneClient
+        The API for accessing the Dune Analytics.
     table_name : str
         The name of the table where the query results will be stored.
-
-    [optional]
-    request_timeout : int
-        Default: 10
-        The request timeout for the dune client.
 
     """
 

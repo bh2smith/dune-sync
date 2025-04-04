@@ -14,7 +14,7 @@ authors = [
 
 [tool.poetry.dependencies]
 python = ">=3.12,<3.14"
-dune-client = ">=1.7.7"
+dune-client = ">=1.7.9"
 pandas = "*"
 sqlalchemy = "*"
 python-dotenv = "*"

@@ -13,14 +13,13 @@ from urllib.parse import urlsplit
 import requests
 import yaml
 from dotenv import load_dotenv
-from dune_client.query import QueryBase
 
 from src.destinations.dune import DuneDestination
 from src.destinations.postgres import PostgresDestination
 from src.interfaces import Destination, Source
 from src.job import Database, Job
 from src.logger import log
-from src.sources.dune import DuneSource, parse_query_parameters
+from src.sources.dune import DuneSource, DuneSourceConfig
 from src.sources.postgres import PostgresSource
 
 
@@ -259,15 +258,7 @@ class RuntimeConfig:
         match source.type:
             case Database.DUNE:
                 return DuneSource(
-                    api_key=source.key,
-                    query=QueryBase(
-                        query_id=int(source_config["query_id"]),
-                        params=parse_query_parameters(
-                            source_config.get("parameters", [])
-                        ),
-                    ),
-                    poll_frequency=source_config.get("poll_frequency", 1),
-                    query_engine=source_config.get("query_engine", "medium"),
+                    dune_config=DuneSourceConfig(source.key, source_config)
                 )
 
             case Database.POSTGRES:
@@ -307,22 +298,10 @@ class RuntimeConfig:
 
         match dest.type:
             case Database.DUNE:
-                try:
-                    request_timeout = dest_config["request_timeout"]
-                    request_timeout = int(request_timeout)
-                except KeyError:
-                    log.debug("Dune request timeout not set: defaulting to 10")
-                    request_timeout = 10
-                except ValueError as e:
-                    log.error(
-                        "request_timeout parameter must be a number, received type %s",
-                        type(request_timeout),
-                    )
-                    raise e
                 return DuneDestination(
                     api_key=dest.key,
                     table_name=dest_config["table_name"],
-                    request_timeout=request_timeout,
+                    request_timeout=int(dest_config.get("request_timeout", 10)),
                 )
 
             case Database.POSTGRES:
