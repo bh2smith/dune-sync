@@ -47,21 +47,21 @@ SAMPLE_DUNE_RESULTS = ResultsResponse.from_dict(
             ],
             "metadata": {
                 "column_names": [
-                    "blocktime",
-                    "block_number",
-                    "success",
-                    "hash",
-                    "type",
                     "block_date",
+                    "block_number",
+                    "blocktime",
+                    "hash",
+                    "success",
+                    "type",
                     "some_number",
                 ],
                 "column_types": [
-                    "timestamp with time zone",
-                    "bigint",
-                    "boolean",
-                    "varbinary",
-                    "varchar",
                     "date",
+                    "bigint",
+                    "timestamp with time zone",
+                    "varbinary",
+                    "boolean",
+                    "varchar",
                     "decimal(12, 7)",
                 ],
                 "row_count": 1,
@@ -133,6 +133,7 @@ class TestEndToEnd(unittest.IsolatedAsyncioTestCase):
                 "some_number": [12.001],
             }
         )
+        print(expected)
         self.assertIsNone(
             pandas.testing.assert_frame_equal(df, expected, check_dtype=True)
         )

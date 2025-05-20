@@ -225,7 +225,10 @@ def dune_result_to_df(result: ExecutionResult) -> TypedDataFrame:
         varbinary_cols.extend(_varbinary_cols)
         unknown_cols.extend(_unknown_cols)
 
-    df = pd.DataFrame(result.rows)
+    df = pd.DataFrame(result.rows, columns=metadata.column_names)
+    if df.empty:
+        return TypedDataFrame(df, dtypes)
+
     df = _reformat_varbinary_columns(df, varbinary_cols)
     df = _reformat_unknown_columns(df, unknown_cols)
 
